@@ -1,418 +1,122 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>🎨 Paint Game</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <title>Paint Game</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        body {
-            background: #1a1a1a;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-            touch-action: none;
-        }
-
-        .game-container {
-            background: #2c2c2c;
-            border-radius: 24px;
-            padding: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-
-        canvas {
-            background: white;
-            border-radius: 16px;
-            display: block;
-            cursor: crosshair;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            touch-action: none;
-        }
-
-        .tools {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin-top: 12px;
-            justify-content: center;
-        }
-
-        .tool-btn {
-            background: #3a3a3a;
-            border: none;
-            border-radius: 40px;
-            padding: 10px 18px;
-            font-size: 14px;
-            font-weight: 600;
-            color: white;
-            cursor: pointer;
-            transition: 0.2s;
-            touch-action: manipulation;
-        }
-
-        .tool-btn:active {
-            transform: scale(0.96);
-            background: #555;
-        }
-
-        .color-palette {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin-top: 12px;
-            flex-wrap: wrap;
-        }
-
-        .color-circle {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            cursor: pointer;
-            border: 2px solid white;
-            transition: 0.1s;
-            touch-action: manipulation;
-        }
-
-        .color-circle:active {
-            transform: scale(0.92);
-        }
-
-        .brush-size {
-            background: #3a3a3a;
-            padding: 8px 16px;
-            border-radius: 40px;
-            color: white;
-            font-weight: bold;
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        input[type="range"] {
-            width: 120px;
-            height: 4px;
-            -webkit-appearance: none;
-            background: #555;
-            border-radius: 5px;
-        }
-
-        input[type="range"]:focus {
-            outline: none;
-        }
-
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: #ffcc00;
-            cursor: pointer;
-        }
-
-        .template-row {
-            display: flex;
-            gap: 8px;
-            justify-content: center;
-            margin-top: 12px;
-            flex-wrap: wrap;
-        }
-
-        .close-btn {
-            background: #dc3545;
-        }
-
-        .close-btn:active {
-            background: #b02a37;
-        }
-
-        .save-btn {
-            background: #28a745;
-        }
-
-        .clear-btn {
-            background: #ff9800;
-        }
-
-        .info {
-            text-align: center;
-            color: #aaa;
-            font-size: 11px;
-            margin-top: 12px;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; }
+        body { background: #1a1a1a; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: Arial; }
+        .container { background: #2c2c2c; border-radius: 24px; padding: 12px; }
+        canvas { background: white; border-radius: 16px; display: block; cursor: crosshair; touch-action: none; }
+        .tools { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; justify-content: center; }
+        .btn { background: #3a3a3a; border: none; border-radius: 40px; padding: 10px 18px; font-size: 14px; color: white; cursor: pointer; }
+        .color { width: 44px; height: 44px; border-radius: 50%; cursor: pointer; border: 2px solid white; }
+        .colors { display: flex; gap: 10px; justify-content: center; margin-top: 12px; }
+        .size { background: #3a3a3a; padding: 8px 16px; border-radius: 40px; color: white; display: flex; align-items: center; gap: 10px; }
+        input { width: 120px; }
+        .info { text-align: center; color: #aaa; font-size: 11px; margin-top: 12px; }
     </style>
 </head>
 <body>
-<div class="game-container">
-    <canvas id="paintCanvas" width="500" height="400"></canvas>
-
+<div class="container">
+    <canvas id="canvas" width="500" height="400"></canvas>
     <div class="tools">
-        <div class="brush-size">
-            <span>✏️</span>
-            <input type="range" id="brushRange" min="2" max="30" value="5">
-            <span id="brushValue">5</span>
-        </div>
-        <button class="tool-btn clear-btn" id="clearBtn">🗑 Очистить</button>
-        <button class="tool-btn save-btn" id="saveBtn">💾 Сохранить</button>
-        <button class="tool-btn close-btn" id="closeBtn">✖ Закрыть</button>
+        <div class="size">✏️ <input type="range" id="size" min="2" max="30" value="5"><span id="sizeVal">5</span></div>
+        <button class="btn" id="clear">🗑 Очистить</button>
+        <button class="btn" id="save">💾 Сохранить</button>
     </div>
-
-    <div class="color-palette">
-        <div class="color-circle" style="background: #000000;"></div>
-        <div class="color-circle" style="background: #ff0000;"></div>
-        <div class="color-circle" style="background: #00ff00;"></div>
-        <div class="color-circle" style="background: #0000ff;"></div>
-        <div class="color-circle" style="background: #ffff00;"></div>
-        <div class="color-circle" style="background: #ff8800;"></div>
-        <div class="color-circle" style="background: #ff44cc;"></div>
-        <div class="color-circle" style="background: #ffffff; border-color: #888;"></div>
+    <div class="colors">
+        <div class="color" style="background:#000"></div>
+        <div class="color" style="background:#f00"></div>
+        <div class="color" style="background:#0f0"></div>
+        <div class="color" style="background:#00f"></div>
+        <div class="color" style="background:#ff0"></div>
+        <div class="color" style="background:#f80"></div>
+        <div class="color" style="background:#f4f"></div>
+        <div class="color" style="background:#fff"></div>
     </div>
-
-    <div class="template-row">
-        <button class="tool-btn" data-template="smile">😊 Смайлик</button>
-        <button class="tool-btn" data-template="heart">❤️ Сердце</button>
-        <button class="tool-btn" data-template="star">⭐ Звезда</button>
-        <button class="tool-btn" data-template="house">🏠 Дом</button>
-        <button class="tool-btn" data-template="tree">🌲 Дерево</button>
-        <button class="tool-btn" data-template="cat">🐱 Кот</button>
+    <div class="tools">
+        <button class="btn" id="smile">😊 Смайлик</button>
+        <button class="btn" id="heart">❤️ Сердце</button>
+        <button class="btn" id="star">⭐ Звезда</button>
     </div>
-
-    <div class="info">
-        🖌️ Зажми палец/мышь и води по холсту | Выбирай цвет и размер
-    </div>
+    <div class="info">🖌️ Зажми палец и води по холсту</div>
 </div>
-
 <script>
-    const tg = window.Telegram.WebApp;
-    tg.ready();
-    tg.expand();
-    
-    const canvas = document.getElementById('paintCanvas');
+    const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
-    
     let painting = false;
-    let currentColor = '#000000';
-    let brushSize = 5;
+    let color = '#000';
+    let size = 5;
     
-    function initCanvas() {
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = currentColor;
-    }
-    initCanvas();
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    function getCanvasCoords(e) {
+    function getXY(e) {
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
         const scaleY = canvas.height / rect.height;
-        
-        let clientX, clientY;
+        let x, y;
         if (e.touches) {
-            clientX = e.touches[0].clientX;
-            clientY = e.touches[0].clientY;
+            x = (e.touches[0].clientX - rect.left) * scaleX;
+            y = (e.touches[0].clientY - rect.top) * scaleY;
         } else {
-            clientX = e.clientX;
-            clientY = e.clientY;
+            x = (e.clientX - rect.left) * scaleX;
+            y = (e.clientY - rect.top) * scaleY;
         }
-        
-        let x = (clientX - rect.left) * scaleX;
-        let y = (clientY - rect.top) * scaleY;
-        x = Math.min(Math.max(0, x), canvas.width);
-        y = Math.min(Math.max(0, y), canvas.height);
-        return { x, y };
+        return { x: Math.min(Math.max(0,x), canvas.width), y: Math.min(Math.max(0,y), canvas.height) };
     }
     
-    function startDraw(e) {
-        e.preventDefault();
-        painting = true;
-        const { x, y } = getCanvasCoords(e);
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(x, y);
-        ctx.stroke();
-    }
+    function start(e) { e.preventDefault(); painting = true; let p = getXY(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x, p.y); ctx.stroke(); }
+    function draw(e) { if (!painting) return; e.preventDefault(); let p = getXY(e); ctx.strokeStyle = color; ctx.lineWidth = size; ctx.lineCap = 'round'; ctx.lineTo(p.x, p.y); ctx.stroke(); ctx.beginPath(); ctx.moveTo(p.x, p.y); }
+    function stop(e) { painting = false; ctx.beginPath(); }
     
-    function draw(e) {
-        e.preventDefault();
-        if (!painting) return;
-        const { x, y } = getCanvasCoords(e);
-        ctx.strokeStyle = currentColor;
-        ctx.lineWidth = brushSize;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.lineTo(x, y);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-    }
-    
-    function stopDraw(e) {
-        e.preventDefault();
-        painting = false;
-        ctx.beginPath();
-    }
-    
-    canvas.addEventListener('mousedown', startDraw);
+    canvas.addEventListener('mousedown', start);
     canvas.addEventListener('mousemove', draw);
-    canvas.addEventListener('mouseup', stopDraw);
-    canvas.addEventListener('touchstart', startDraw);
+    canvas.addEventListener('mouseup', stop);
+    canvas.addEventListener('touchstart', start);
     canvas.addEventListener('touchmove', draw);
-    canvas.addEventListener('touchend', stopDraw);
+    canvas.addEventListener('touchend', stop);
     
-    document.querySelectorAll('.color-circle').forEach(circle => {
-        circle.addEventListener('click', () => {
-            currentColor = circle.style.backgroundColor;
-            tg.HapticFeedback.impactOccurred('light');
-        });
-    });
+    document.querySelectorAll('.color').forEach(c => c.addEventListener('click', () => { color = c.style.background; }));
+    document.getElementById('size').oninput = (e) => { size = e.target.value; document.getElementById('sizeVal').innerText = size; };
+    document.getElementById('clear').onclick = () => { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height); };
+    document.getElementById('save').onclick = () => { let a = document.createElement('a'); a.href = canvas.toDataURL(); a.download = 'draw.png'; a.click(); };
+    document.getElementById('smile').onclick = () => { drawTemplate('smile'); };
+    document.getElementById('heart').onclick = () => { drawTemplate('heart'); };
+    document.getElementById('star').onclick = () => { drawTemplate('star'); };
     
-    const brushRange = document.getElementById('brushRange');
-    const brushValue = document.getElementById('brushValue');
-    brushRange.addEventListener('input', () => {
-        brushSize = parseInt(brushRange.value);
-        brushValue.innerText = brushSize;
-        tg.HapticFeedback.impactOccurred('soft');
-    });
-    
-    document.getElementById('clearBtn').addEventListener('click', () => {
-        ctx.fillStyle = '#ffffff';
+    function drawTemplate(t) {
+        ctx.fillStyle = '#fff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = currentColor;
-        tg.HapticFeedback.impactOccurred('medium');
-    });
-    
-    document.getElementById('saveBtn').addEventListener('click', () => {
-        const link = document.createElement('a');
-        link.download = 'drawing.png';
-        link.href = canvas.toDataURL();
-        link.click();
-        tg.showPopup({
-            title: 'Сохранено!',
-            message: 'Картинка скачана в галерею',
-            buttons: [{type: 'ok'}]
-        });
-    });
-    
-    document.getElementById('closeBtn').addEventListener('click', () => {
-        tg.close();
-    });
-    
-    function loadTemplate(type) {
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = currentColor;
-        
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2;
-        
-        switch(type) {
-            case 'smile':
-                ctx.beginPath();
-                ctx.arc(centerX, centerY - 20, 100, 0, 2 * Math.PI);
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.arc(centerX - 40, centerY - 50, 15, 0, 2 * Math.PI);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.arc(centerX + 40, centerY - 50, 15, 0, 2 * Math.PI);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.arc(centerX, centerY + 10, 40, 0.1, Math.PI - 0.1);
-                ctx.stroke();
-                break;
-            case 'heart':
-                ctx.beginPath();
-                ctx.moveTo(centerX, centerY + 40);
-                ctx.bezierCurveTo(centerX, centerY + 40, centerX - 80, centerY - 40, centerX, centerY);
-                ctx.bezierCurveTo(centerX + 80, centerY - 40, centerX, centerY + 40, centerX, centerY + 40);
-                ctx.fill();
-                break;
-            case 'star':
-                let spikes = 5;
-                let outerR = 70;
-                let innerR = 35;
-                let step = Math.PI / spikes;
-                let rot = Math.PI / 2 * 3;
-                ctx.beginPath();
-                for (let i = 0; i < spikes; i++) {
-                    let x1 = centerX + Math.cos(rot + i * step) * outerR;
-                    let y1 = centerY - 30 + Math.sin(rot + i * step) * outerR;
-                    let x2 = centerX + Math.cos(rot + (i + 0.5) * step) * innerR;
-                    let y2 = centerY - 30 + Math.sin(rot + (i + 0.5) * step) * innerR;
-                    if (i == 0) ctx.moveTo(x1, y1);
-                    else ctx.lineTo(x1, y1);
-                    ctx.lineTo(x2, y2);
-                }
-                ctx.closePath();
-                ctx.fill();
-                break;
-            case 'house':
-                ctx.fillRect(centerX - 50, centerY, 100, 100);
-                ctx.beginPath();
-                ctx.moveTo(centerX, centerY - 60);
-                ctx.lineTo(centerX - 80, centerY);
-                ctx.lineTo(centerX + 80, centerY);
-                ctx.fill();
-                ctx.fillRect(centerX - 20, centerY + 50, 40, 50);
-                break;
-            case 'tree':
-                ctx.fillRect(centerX - 15, centerY + 40, 30, 90);
-                ctx.beginPath();
-                ctx.arc(centerX, centerY, 60, 0, 2 * Math.PI);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.arc(centerX, centerY - 50, 50, 0, 2 * Math.PI);
-                ctx.fill();
-                break;
-            case 'cat':
-                ctx.beginPath();
-                ctx.arc(centerX, centerY, 70, 0, 2 * Math.PI);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.moveTo(centerX - 60, centerY - 60);
-                ctx.lineTo(centerX - 90, centerY - 90);
-                ctx.lineTo(centerX - 40, centerY - 70);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.moveTo(centerX + 60, centerY - 60);
-                ctx.lineTo(centerX + 90, centerY - 90);
-                ctx.lineTo(centerX + 40, centerY - 70);
-                ctx.fill();
-                ctx.fillStyle = 'white';
-                ctx.beginPath();
-                ctx.arc(centerX - 25, centerY - 20, 12, 0, 2 * Math.PI);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.arc(centerX + 25, centerY - 20, 12, 0, 2 * Math.PI);
-                ctx.fill();
-                ctx.fillStyle = 'black';
-                ctx.beginPath();
-                ctx.arc(centerX - 25, centerY - 20, 5, 0, 2 * Math.PI);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.arc(centerX + 25, centerY - 20, 5, 0, 2 * Math.PI);
-                ctx.fill();
-                break;
+        ctx.fillStyle = color;
+        let cx = canvas.width/2, cy = canvas.height/2;
+        if (t === 'smile') {
+            ctx.beginPath(); ctx.arc(cx, cy-20, 100, 0, 2*Math.PI); ctx.stroke();
+            ctx.beginPath(); ctx.arc(cx-40, cy-50, 15, 0, 2*Math.PI); ctx.fill();
+            ctx.beginPath(); ctx.arc(cx+40, cy-50, 15, 0, 2*Math.PI); ctx.fill();
+            ctx.beginPath(); ctx.arc(cx, cy+10, 40, 0.1, Math.PI-0.1); ctx.stroke();
+        } else if (t === 'heart') {
+            ctx.beginPath();
+            ctx.moveTo(cx, cy+40);
+            ctx.bezierCurveTo(cx, cy+40, cx-80, cy-40, cx, cy);
+            ctx.bezierCurveTo(cx+80, cy-40, cx, cy+40, cx, cy+40);
+            ctx.fill();
+        } else if (t === 'star') {
+            let spikes=5, outer=70, inner=35, step=Math.PI/spikes, rot=Math.PI/2*3;
+            ctx.beginPath();
+            for(let i=0; i<spikes; i++) {
+                let x1 = cx + Math.cos(rot+i*step)*outer;
+                let y1 = cy-30 + Math.sin(rot+i*step)*outer;
+                let x2 = cx + Math.cos(rot+(i+0.5)*step)*inner;
+                let y2 = cy-30 + Math.sin(rot+(i+0.5)*step)*inner;
+                if(i==0) ctx.moveTo(x1,y1); else ctx.lineTo(x1,y1);
+                ctx.lineTo(x2,y2);
+            }
+            ctx.closePath(); ctx.fill();
         }
-        ctx.beginPath();
-        tg.HapticFeedback.impactOccurred('medium');
     }
-    
-    document.querySelectorAll('[data-template]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            loadTemplate(btn.getAttribute('data-template'));
-        });
-    });
 </script>
 </body>
 </html>
