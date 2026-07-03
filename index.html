@@ -1,122 +1,2851 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Paint Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mech:anic — игра</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; }
-        body { background: #1a1a1a; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: Arial; }
-        .container { background: #2c2c2c; border-radius: 24px; padding: 12px; }
-        canvas { background: white; border-radius: 16px; display: block; cursor: crosshair; touch-action: none; }
-        .tools { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; justify-content: center; }
-        .btn { background: #3a3a3a; border: none; border-radius: 40px; padding: 10px 18px; font-size: 14px; color: white; cursor: pointer; }
-        .color { width: 44px; height: 44px; border-radius: 50%; cursor: pointer; border: 2px solid white; }
-        .colors { display: flex; gap: 10px; justify-content: center; margin-top: 12px; }
-        .size { background: #3a3a3a; padding: 8px 16px; border-radius: 40px; color: white; display: flex; align-items: center; gap: 10px; }
-        input { width: 120px; }
-        .info { text-align: center; color: #aaa; font-size: 11px; margin-top: 12px; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            background: #080b16;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            padding: 16px;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        .menu-screen {
+            background: radial-gradient(ellipse at 50% 30%, #1f2a44, #0e1322);
+            padding: 44px 34px 48px;
+            border-radius: 32px;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.9), 0 0 0 1px #4a5f8a inset, 0 0 0 2px #1f2a44 inset, 0 0 40px rgba(60,120,255,0.08);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 660px;
+            width: 100%;
+            position: relative;
+            transition: opacity 0.5s, transform 0.5s;
+        }
+        .menu-screen.hidden {
+            opacity: 0;
+            transform: scale(0.9);
+            pointer-events: none;
+            position: absolute;
+        }
+
+        .menu-screen::before {
+            content: '';
+            position: absolute;
+            top: 8px;
+            left: 20px;
+            right: 20px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #5f7fbf55, #8fb0ff55, #5f7fbf55, transparent);
+            border-radius: 50%;
+        }
+        .menu-screen::after {
+            content: '';
+            position: absolute;
+            bottom: 8px;
+            left: 20px;
+            right: 20px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #5f7fbf33, #8fb0ff33, #5f7fbf33, transparent);
+            border-radius: 50%;
+        }
+
+        .title-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 3px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            padding: 8px 4px;
+        }
+
+        .title-chip {
+            width: 58px;
+            height: 58px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: #d6e6ff;
+            text-shadow: 0 0 10px #3f7bff66, 0 0 30px #1f4bb044;
+            background: linear-gradient(145deg, #2a3a5a, #161f34);
+            border-radius: 12px;
+            box-shadow: 0 6px 0 #0a0f1a, 0 8px 20px rgba(0,0,0,0.7), inset 0 1px 0 #6a8acf66, inset 0 -2px 0 #0a0f1a, 0 0 0 1px #4a5f8a55;
+            cursor: pointer;
+            position: relative;
+            transition: box-shadow 0.2s, transform 0.1s;
+        }
+        .title-chip::before {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 8px;
+            right: 8px;
+            height: 14px;
+            background: linear-gradient(180deg, rgba(180,210,255,0.25) 0%, transparent 100%);
+            border-radius: 40% 40% 50% 50% / 60% 60% 30% 30%;
+            opacity: 0.7;
+            pointer-events: none;
+        }
+        .title-chip:hover { border-color: #8fb0ffaa; transform: translateY(-1px); }
+        .title-chip:active { transform: scale(0.92) translateY(4px); }
+        .title-chip.falling {
+            animation: chipFall 1.4s cubic-bezier(0.22, 0.68, 0.35, 1.0) forwards !important;
+            pointer-events: none !important;
+        }
+        .title-chip.fallen {
+            animation: none !important;
+            transform: translateY(0) rotate(0deg) scale(1) !important;
+            pointer-events: none !important;
+            background: linear-gradient(145deg, #1a233a88, #0e152588) !important;
+            border-color: #5f7fbf44 !important;
+            color: #a0b8ee44 !important;
+            opacity: 0.35 !important;
+        }
+        .title-chip.fallen::before { opacity: 0.15 !important; }
+
+        @keyframes chipFall {
+            0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+            5% { transform: translateY(10px) rotate(5deg) scale(1.04); opacity: 0.98; }
+            20% { transform: translateY(60px) rotate(-12deg) scale(0.97); opacity: 0.82; }
+            40% { transform: translateY(140px) rotate(18deg) scale(1.01); opacity: 0.60; }
+            60% { transform: translateY(240px) rotate(-15deg) scale(0.95); opacity: 0.38; }
+            80% { transform: translateY(360px) rotate(10deg) scale(0.91); opacity: 0.18; }
+            100% { transform: translateY(480px) rotate(25deg) scale(0.85); opacity: 0; }
+        }
+
+        .menu-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 6px;
+        }
+
+        .play-btn, .instruction-btn, .update-btn {
+            background: linear-gradient(145deg, #2f3f62, #1a2540);
+            border: none;
+            padding: 12px 32px;
+            border-radius: 16px;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #8aacf0;
+            text-shadow: 0 2px 0 #0b101c;
+            box-shadow: 0 8px 0 #0a0f1a, 0 8px 24px rgba(0,0,0,0.6), inset 0 1px 0 #6a8acf55, inset 0 -2px 0 #0a0f1a, 0 0 0 1px #3d4b6b55;
+            letter-spacing: 3px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            font-family: inherit;
+        }
+        .play-btn:hover, .instruction-btn:hover, .update-btn:hover {
+            transform: translateY(-4px) scale(1.03);
+            box-shadow: 0 12px 0 #0a0f1a, 0 12px 32px rgba(0,0,0,0.7), inset 0 1px 0 #8fb0ff88, inset 0 -2px 0 #0a0f1a, 0 0 0 1px #6a8acf88, 0 0 50px #3f7bff44;
+            color: #c8ddff;
+            background: linear-gradient(145deg, #3a507a, #1f2d4a);
+        }
+        .play-btn:active, .instruction-btn:active, .update-btn:active {
+            transform: translateY(4px) scale(0.95);
+            box-shadow: 0 4px 0 #0a0f1a, 0 4px 16px rgba(0,0,0,0.6), inset 0 1px 0 #6a8acf55, inset 0 -1px 0 #0a0f1a, 0 0 0 1px #3d4b6b55;
+        }
+        .play-btn::before, .instruction-btn::before, .update-btn::before {
+            content: '';
+            position: absolute;
+            top: 4px;
+            left: 20px;
+            right: 20px;
+            height: 12px;
+            background: linear-gradient(180deg, rgba(180,210,255,0.12) 0%, transparent 100%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .instruction-btn { font-size: 1.1rem; padding: 10px 24px; letter-spacing: 2px; }
+        .update-btn { font-size: 0.9rem; padding: 8px 18px; letter-spacing: 1px; background: linear-gradient(145deg, #2a3a4a, #1a2030); border-color: #4a5a6a; }
+
+        .corner {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-color: #4a5f8a44;
+            border-style: solid;
+            pointer-events: none;
+        }
+        .corner-tl { top: 12px; left: 12px; border-width: 2px 0 0 2px; border-radius: 4px 0 0 0; }
+        .corner-tr { top: 12px; right: 12px; border-width: 2px 2px 0 0; border-radius: 0 4px 0 0; }
+        .corner-bl { bottom: 12px; left: 12px; border-width: 0 0 2px 2px; border-radius: 0 0 0 4px; }
+        .corner-br { bottom: 12px; right: 12px; border-width: 0 2px 2px 0; border-radius: 0 0 4px 0; }
+
+        .version-tag {
+            color: #4a5f8a66;
+            font-size: 0.7rem;
+            margin-top: 8px;
+            letter-spacing: 1px;
+        }
+
+        /* ===== ИНСТРУКЦИЯ ===== */
+        .instruction-screen {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #0a0f1aee;
+            backdrop-filter: blur(12px);
+            z-index: 1000;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .instruction-screen.open { display: block; }
+        .instruction-screen::-webkit-scrollbar { width: 6px; }
+        .instruction-screen::-webkit-scrollbar-thumb { background: #2a3a5a; border-radius: 4px; }
+
+        .instruction-content {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #141c2e;
+            border-radius: 24px;
+            padding: 30px 35px 40px;
+            border: 1px solid #2a3a5a;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.9);
+            position: relative;
+        }
+        .instruction-content h1 {
+            color: #d6e6ff;
+            font-size: 2rem;
+            text-align: center;
+            margin-bottom: 4px;
+            text-shadow: 0 0 30px #3f7bff44;
+        }
+        .instruction-content .subtitle {
+            color: #8aacf0;
+            text-align: center;
+            font-size: 0.9rem;
+            opacity: 0.7;
+            margin-bottom: 20px;
+        }
+        .instruction-close {
+            position: sticky;
+            top: 0;
+            float: right;
+            background: #2a1a2a;
+            border: 1px solid #5a3a4a;
+            color: #d6e6ff;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 1.4rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: inherit;
+            z-index: 5;
+        }
+        .instruction-close:hover { background: #3a2a3a; transform: scale(1.05); }
+
+        .instruction-section {
+            margin: 16px 0;
+            padding: 14px 18px;
+            background: #0a0f1a66;
+            border-radius: 12px;
+            border-left: 3px solid #4a5f8a;
+        }
+        .instruction-section h2 {
+            color: #8fb0ff;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .instruction-section .emoji-big { font-size: 1.6rem; }
+        .instruction-section p, .instruction-section li {
+            color: #b4c8ee;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+        .instruction-section ul { padding-left: 18px; margin: 6px 0; }
+        .instruction-section li { margin: 3px 0; }
+
+        .chip-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 4px;
+            margin: 8px 0;
+        }
+        .chip-grid .chip-item {
+            background: #1a233a;
+            padding: 5px 8px;
+            border-radius: 5px;
+            border: 1px solid #2a3a5a;
+            color: #b4c8ee;
+            font-size: 0.65rem;
+            text-align: center;
+            font-weight: 600;
+        }
+        .chip-grid .chip-item .chip-example {
+            font-size: 0.55rem;
+            opacity: 0.6;
+            font-weight: 400;
+            display: block;
+            margin-top: 2px;
+        }
+
+        .tool-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 6px;
+            margin: 8px 0;
+        }
+        .tool-grid .tool-item {
+            background: #1a233a;
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid #2a3a5a;
+            color: #b4c8ee;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .tool-grid .tool-item .tool-icon { font-size: 1.2rem; }
+
+        .logic-example {
+            background: #0a0f1a;
+            padding: 6px 10px;
+            border-radius: 5px;
+            margin: 4px 0;
+            font-family: monospace;
+            color: #8fb0ff;
+            font-size: 0.75rem;
+            border: 1px solid #1a233a;
+        }
+
+        .update-badge {
+            display: inline-block;
+            background: #ff883344;
+            color: #ff8833;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            margin-left: 8px;
+            border: 1px solid #ff883344;
+        }
+
+        @media (max-width: 700px) {
+            .instruction-content { padding: 14px; }
+            .chip-grid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }
+            .tool-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+            .play-btn { font-size: 1.1rem; padding: 8px 18px; }
+            .instruction-btn { font-size: 0.9rem; padding: 6px 14px; }
+            .update-btn { font-size: 0.7rem; padding: 4px 12px; }
+            .title-chip { width: 36px; height: 36px; font-size: 1.2rem; }
+            .menu-buttons { gap: 6px; }
+        }
+
+        /* ===== ИГРОВОЙ ЭКРАН ===== */
+        .game-screen {
+            display: none;
+            width: 100%;
+            max-width: 1000px;
+            height: 90vh;
+            max-height: 750px;
+            flex-direction: column;
+            gap: 8px;
+            background: #0e1322;
+            border-radius: 24px;
+            padding: 12px;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.9), 0 0 0 1px #4a5f8a inset;
+            position: relative;
+        }
+        .game-screen.active { display: flex; }
+
+        .toolbar {
+            display: flex;
+            gap: 6px;
+            padding: 6px 10px;
+            background: #141c2e;
+            border-radius: 14px;
+            border: 1px solid #2a3a5a;
+            flex-wrap: wrap;
+            align-items: center;
+            min-height: 44px;
+        }
+        .tool-btn {
+            background: linear-gradient(145deg, #1f2d4a, #141c2e);
+            border: 1px solid #3d4b6b;
+            color: #8aacf0;
+            padding: 5px 12px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-family: inherit;
+        }
+        .tool-btn:hover { background: #2a3a5a; border-color: #6a8acf; transform: translateY(-1px); }
+        .tool-btn:active { transform: scale(0.95); }
+        .tool-btn.active { background: #3a507a; border-color: #8fb0ff; box-shadow: 0 0 20px #3f7bff33; }
+
+        .field-wrapper {
+            flex: 1;
+            border-radius: 14px;
+            border: 2px solid #2a3a5a;
+            background: #0a0f1a;
+            position: relative;
+            overflow: hidden;
+            min-height: 300px;
+        }
+        .field-wrapper::before {
+            content: '';
+            position: absolute;
+            inset: 4px;
+            border: 1px dashed #2a3a5a44;
+            border-radius: 10px;
+            pointer-events: none;
+        }
+
+        .field {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            cursor: default;
+        }
+
+        /* ===== ЭЛЕМЕНТЫ ===== */
+        .field-item {
+            position: absolute;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: #d6e6ff;
+            box-shadow: 0 4px 0 #0a0f1a, 0 4px 12px rgba(0,0,0,0.5);
+            touch-action: none;
+            z-index: 1;
+            transition: box-shadow 0.2s, border-color 0.2s, background 0.3s;
+            min-width: 50px;
+            min-height: 50px;
+            cursor: default;
+        }
+
+        .field-item.draggable {
+            cursor: grab;
+        }
+        .field-item.draggable:active {
+            cursor: grabbing;
+        }
+
+        .field-item.no-collision {
+            box-shadow: 0 4px 0 #0a0f1a, 0 4px 12px rgba(0,0,0,0.5), 0 0 0 2px #ff883366;
+            border-color: #ff8833 !important;
+        }
+
+        .field-item.type-lamp {
+            background: #2a2a2a;
+            border: 2px solid #444;
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
+        }
+        .field-item.type-lamp.on {
+            border-color: var(--lamp-color, #ffffff);
+            box-shadow: 0 4px 0 #0a0f1a, 0 0 40px var(--lamp-glow, #ffffff88);
+        }
+
+        .field-item.type-sensor {
+            background: rgba(255, 50, 50, 0.25);
+            border: 2px solid rgba(255, 50, 50, 0.4);
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
+        }
+        .field-item.type-sensor.active {
+            background: rgba(0, 255, 100, 0.35);
+            border-color: #00ff64;
+            box-shadow: 0 4px 0 #0a0f1a, 0 0 30px #00ff6444;
+        }
+
+        .field-item.type-display {
+            background: #ffffff;
+            border: 2px solid #888;
+            width: 60px;
+            height: 40px;
+            border-radius: 4px;
+            transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
+        }
+        .field-item.type-display.on {
+            border-color: var(--display-color, #000000);
+            box-shadow: 0 4px 0 #0a0f1a, 0 0 30px var(--display-glow, #00000044);
+        }
+
+        .field-item.type-chip {
+            background: linear-gradient(145deg, #2a3a5a, #161f34);
+            border: 2px solid #4a5f8a;
+            padding: 4px 10px;
+            gap: 6px;
+            border-radius: 12px;
+            min-width: 60px;
+            min-height: 50px;
+            box-shadow: 0 6px 0 #0a0f1a, 0 8px 20px rgba(0,0,0,0.7), inset 0 1px 0 #6a8acf66, inset 0 -2px 0 #0a0f1a, 0 0 0 1px #4a5f8a55;
+        }
+        .field-item.type-chip::before {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 8px;
+            right: 8px;
+            height: 14px;
+            background: linear-gradient(180deg, rgba(180,210,255,0.25) 0%, transparent 100%);
+            border-radius: 40% 40% 50% 50% / 60% 60% 30% 30%;
+            opacity: 0.7;
+            pointer-events: none;
+        }
+        .field-item.type-chip .chip-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #d6e6ff;
+            text-shadow: 0 0 10px #3f7bff66, 0 0 30px #1f4bb044;
+            letter-spacing: 1px;
+        }
+        .field-item.type-chip .output-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ff3333;
+            display: inline-block;
+            transition: background 0.3s, box-shadow 0.3s;
+            flex-shrink: 0;
+        }
+        .field-item.type-chip .output-indicator.on {
+            background: #00ff64;
+            box-shadow: 0 0 16px #00ff64;
+        }
+        .field-item.type-chip.powered {
+            border-color: #00ff64;
+            box-shadow: 0 6px 0 #0a0f1a, 0 0 30px #00ff6444, inset 0 1px 0 #6a8acf66, inset 0 -2px 0 #0a0f1a, 0 0 0 1px #4a5f8a55;
+        }
+
+        .field-item.with-indicator {
+            background: linear-gradient(145deg, #1f2d4a, #141c2e);
+            border: 2px solid #4a5f8a;
+            padding: 4px 10px;
+            gap: 6px;
+            border-radius: 8px;
+            min-width: 50px;
+            min-height: 40px;
+        }
+        .field-item.with-indicator .item-icon { font-size: 0.9rem; }
+        .field-item.with-indicator .item-label { font-size: 0.6rem; opacity: 0.8; }
+
+        .field-item .indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ff3333;
+            transition: background 0.3s, box-shadow 0.3s;
+            flex-shrink: 0;
+        }
+        .field-item .indicator.on {
+            background: #00ff64;
+            box-shadow: 0 0 16px #00ff64;
+        }
+
+        .field-item.powered {
+            border-color: #00ff64;
+            box-shadow: 0 4px 0 #0a0f1a, 0 0 30px #00ff6444;
+        }
+
+        .field-item.type-resistor,
+        .field-item.type-motor,
+        .field-item.type-speaker,
+        .field-item.type-timer {
+            background: linear-gradient(145deg, #1f2d4a, #141c2e);
+            border: 2px solid #4a5f8a;
+            padding: 4px 10px;
+            gap: 6px;
+            border-radius: 8px;
+            min-width: 50px;
+            min-height: 40px;
+        }
+
+        .field-item.type-timer {
+            border-color: #ff8833;
+            width: 60px;
+            height: 60px;
+            min-width: 60px;
+            min-height: 60px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            gap: 2px;
+        }
+        .field-item.type-timer .timer-label {
+            font-size: 0.6rem;
+            color: #ff8833;
+            font-weight: 700;
+            text-align: center;
+            font-family: monospace;
+            letter-spacing: 1px;
+        }
+        .field-item.type-timer .timer-sub {
+            font-size: 0.45rem;
+            color: #ff883366;
+            font-weight: 400;
+            font-family: monospace;
+        }
+        .field-item.type-timer .timer-progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            background: #ff8833;
+            border-radius: 0 0 8px 8px;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+        .field-item.type-timer.timer-active .timer-progress {
+            animation: timerProgress var(--timer-duration, 1s) linear forwards;
+        }
+        .field-item.type-timer .timer-bg {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #1a233a;
+            border-radius: 0 0 8px 8px;
+        }
+
+        @keyframes timerProgress {
+            0% { width: 100%; }
+            100% { width: 0%; }
+        }
+
+        /* Рычаг с большим хитбоксом */
+        .field-item.type-switch {
+            min-width: 70px;
+            min-height: 44px;
+            padding: 6px 14px;
+            background: linear-gradient(145deg, #1f2d4a, #141c2e);
+            border: 2px solid #4a5f8a;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+            color: #d6e6ff;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #0a0f1a, 0 4px 12px rgba(0,0,0,0.5);
+            transition: border-color 0.3s, box-shadow 0.3s, transform 0.1s;
+        }
+        .field-item.type-switch .indicator {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #ff3333;
+            transition: background 0.3s, box-shadow 0.3s;
+            flex-shrink: 0;
+        }
+        .field-item.type-switch .indicator.on {
+            background: #00ff64;
+            box-shadow: 0 0 16px #00ff64;
+        }
+        .field-item.type-switch.active {
+            border-color: #00ff64;
+            box-shadow: 0 4px 0 #0a0f1a, 0 0 30px #00ff6444;
+        }
+        .field-item.type-switch:hover {
+            border-color: #6a8acf;
+            transform: translateY(-1px);
+        }
+        .field-item.type-switch:active {
+            transform: scale(0.95) translateY(2px);
+        }
+
+        .ghost {
+            position: fixed;
+            pointer-events: none;
+            opacity: 0.4;
+            transform: scale(1.1);
+            z-index: 1000;
+            background: linear-gradient(145deg, #2a3a5a88, #141c2e88);
+            border: 2px dashed #6a8acf;
+            border-radius: 8px;
+            padding: 6px 10px;
+            color: #8aacf0;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            backdrop-filter: blur(4px);
+        }
+
+        .spawn-panel {
+            position: absolute;
+            left: 6px;
+            top: 6px;
+            bottom: 6px;
+            width: 120px;
+            background: #141c2ecc;
+            backdrop-filter: blur(8px);
+            border-radius: 10px;
+            border: 1px solid #2a3a5a;
+            padding: 6px;
+            overflow-y: auto;
+            display: none;
+            flex-direction: column;
+            gap: 2px;
+            z-index: 10;
+        }
+        .spawn-panel.open { display: flex; }
+        .spawn-panel::-webkit-scrollbar { width: 3px; }
+        .spawn-panel::-webkit-scrollbar-thumb { background: #2a3a5a; border-radius: 3px; }
+
+        .spawn-category {
+            color: #8aacf088;
+            font-size: 0.55rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 6px 4px 2px 4px;
+            border-bottom: 1px solid #2a3a5a44;
+            margin-top: 4px;
+        }
+        .spawn-category:first-child { margin-top: 0; }
+
+        .spawn-item {
+            padding: 3px 6px;
+            border-radius: 4px;
+            background: #1a233a55;
+            border: 1px solid #2a3a5a44;
+            color: #8aacf0;
+            font-size: 0.6rem;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s;
+            touch-action: none;
+        }
+        .spawn-item:hover { background: #2a3a5a88; border-color: #4a5f8a; }
+        .spawn-item:active { cursor: grabbing; }
+
+        .settings-panel {
+            position: absolute;
+            right: 6px;
+            top: 6px;
+            background: #141c2ecc;
+            backdrop-filter: blur(8px);
+            border-radius: 10px;
+            border: 1px solid #2a3a5a;
+            padding: 10px;
+            display: none;
+            flex-direction: column;
+            gap: 4px;
+            z-index: 10;
+            min-width: 180px;
+            max-height: 350px;
+            overflow-y: auto;
+        }
+        .settings-panel.open { display: flex; }
+        .settings-panel::-webkit-scrollbar { width: 4px; }
+        .settings-panel::-webkit-scrollbar-thumb { background: #2a3a5a; border-radius: 4px; }
+        .settings-panel label {
+            color: #8aacf0;
+            font-size: 0.65rem;
+            font-weight: 600;
+        }
+        .settings-panel select, .settings-panel input {
+            background: #1a233a;
+            color: #d6e6ff;
+            border: 1px solid #2a3a5a;
+            border-radius: 5px;
+            padding: 3px 6px;
+            font-size: 0.7rem;
+            font-family: inherit;
+            cursor: pointer;
+        }
+        .settings-panel select:focus, .settings-panel input:focus { outline: none; border-color: #6a8acf; }
+        .settings-panel .note-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 4px;
+            margin: 4px 0;
+        }
+        .settings-panel .note-btn {
+            background: #1a233a;
+            border: 1px solid #2a3a5a;
+            color: #8aacf0;
+            padding: 4px 6px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .settings-panel .note-btn:hover { background: #2a3a5a; border-color: #6a8acf; }
+        .settings-panel .note-btn.active { background: #3a507a; border-color: #8fb0ff; }
+        .settings-panel .settings-row {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .settings-panel .file-input-wrapper {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin: 4px 0;
+        }
+        .settings-panel .file-input-wrapper input[type="file"] {
+            display: none;
+        }
+        .settings-panel .file-input-wrapper .file-label {
+            background: #2a3a5a;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #8aacf0;
+            border: 1px solid #4a5f8a;
+        }
+        .settings-panel .file-input-wrapper .file-label:hover {
+            background: #3a507a;
+            border-color: #6a8acf;
+        }
+        .settings-panel .file-input-wrapper .file-status {
+            font-size: 0.6rem;
+            color: #4a5f8a;
+        }
+        .settings-panel .toggle-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 2px 0;
+        }
+        .settings-panel .toggle-row label {
+            font-size: 0.65rem;
+            color: #8aacf0;
+        }
+        .settings-panel .toggle-switch {
+            width: 36px;
+            height: 20px;
+            background: #1a233a;
+            border-radius: 10px;
+            border: 1px solid #2a3a5a;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+        }
+        .settings-panel .toggle-switch.active {
+            background: #3a507a;
+            border-color: #6a8acf;
+        }
+        .settings-panel .toggle-switch .toggle-knob {
+            width: 14px;
+            height: 14px;
+            background: #8aacf0;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: all 0.2s;
+        }
+        .settings-panel .toggle-switch.active .toggle-knob {
+            left: 18px;
+            background: #00ff64;
+        }
+
+        .paint-panel {
+            position: absolute;
+            right: 6px;
+            top: 6px;
+            background: #141c2ecc;
+            backdrop-filter: blur(8px);
+            border-radius: 10px;
+            border: 1px solid #2a3a5a;
+            padding: 10px;
+            display: none;
+            flex-direction: column;
+            gap: 6px;
+            z-index: 10;
+            min-width: 160px;
+            align-items: center;
+        }
+        .paint-panel.open { display: flex; }
+        .paint-panel label {
+            color: #8aacf0;
+            font-size: 0.65rem;
+            font-weight: 600;
+        }
+        .paint-panel input[type="color"] {
+            width: 80px;
+            height: 80px;
+            border: 2px solid #2a3a5a;
+            border-radius: 50%;
+            background: transparent;
+            cursor: pointer;
+            padding: 4px;
+        }
+        .paint-panel .color-preview {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 2px solid #4a5f8a;
+            transition: background 0.1s;
+        }
+
+        .wire {
+            position: absolute;
+            pointer-events: none;
+            z-index: 2;
+        }
+        .wire-line {
+            stroke: #5f8fdf;
+            stroke-width: 3;
+            fill: none;
+            filter: drop-shadow(0 0 6px #3f7bff66);
+            transition: stroke 0.4s, filter 0.4s;
+        }
+        .wire-line.powered {
+            stroke: #00ff64;
+            filter: drop-shadow(0 0 14px #00ff64);
+        }
+
+        .temp-wire {
+            position: absolute;
+            pointer-events: none;
+            z-index: 3;
+            stroke: #8fb0ff88;
+            stroke-width: 2;
+            stroke-dasharray: 8 4;
+            fill: none;
+        }
+
+        .audio-player {
+            display: none;
+        }
+
+        @media (max-width: 700px) {
+            .spawn-panel { width: 90px; left: 4px; top: 4px; bottom: 4px; }
+            .spawn-item { font-size: 0.5rem; padding: 2px 4px; }
+            .title-chip { width: 36px; height: 36px; font-size: 1.2rem; }
+            .game-screen { padding: 6px; max-height: 95vh; }
+            .tool-btn { font-size: 0.55rem; padding: 3px 6px; }
+            .field-item.type-lamp,
+            .field-item.type-sensor { width: 40px; height: 40px; }
+            .field-item.type-display { width: 45px; height: 32px; }
+            .field-item.with-indicator { min-width: 40px; min-height: 32px; padding: 2px 6px; }
+            .field-item.type-chip { min-width: 50px; min-height: 40px; padding: 2px 6px; }
+            .field-item.type-chip .chip-label { font-size: 0.6rem; }
+            .settings-panel { min-width: 140px; max-height: 250px; }
+            .settings-panel .note-grid { grid-template-columns: repeat(3, 1fr); }
+            .field-item.type-timer { width: 48px; height: 48px; min-width: 48px; min-height: 48px; }
+            .field-item.type-timer .timer-label { font-size: 0.5rem; }
+            .field-item.type-switch { min-width: 56px; min-height: 36px; padding: 4px 10px; font-size: 0.65rem; }
+        }
     </style>
 </head>
 <body>
-<div class="container">
-    <canvas id="canvas" width="500" height="400"></canvas>
-    <div class="tools">
-        <div class="size">✏️ <input type="range" id="size" min="2" max="30" value="5"><span id="sizeVal">5</span></div>
-        <button class="btn" id="clear">🗑 Очистить</button>
-        <button class="btn" id="save">💾 Сохранить</button>
+
+    <!-- ===== МЕНЮ ===== -->
+    <div class="menu-screen" id="menuScreen">
+        <div class="corner corner-tl"></div>
+        <div class="corner corner-tr"></div>
+        <div class="corner corner-bl"></div>
+        <div class="corner corner-br"></div>
+        <div class="title-row" id="titleRow"></div>
+        <div class="menu-buttons">
+            <button class="play-btn" id="playBtn">▶ ИГРАТЬ</button>
+            <button class="instruction-btn" id="instructionBtn">📖 ИНСТРУКЦИЯ</button>
+            <button class="update-btn" id="updateBtn">🔄 Обновление 1.1</button>
+        </div>
+        <div class="version-tag">v1.1 — Mech:anic</div>
     </div>
-    <div class="colors">
-        <div class="color" style="background:#000"></div>
-        <div class="color" style="background:#f00"></div>
-        <div class="color" style="background:#0f0"></div>
-        <div class="color" style="background:#00f"></div>
-        <div class="color" style="background:#ff0"></div>
-        <div class="color" style="background:#f80"></div>
-        <div class="color" style="background:#f4f"></div>
-        <div class="color" style="background:#fff"></div>
+
+    <!-- ===== ИНСТРУКЦИЯ ===== -->
+    <div class="instruction-screen" id="instructionScreen">
+        <div class="instruction-content">
+            <button class="instruction-close" id="instructionClose">✕</button>
+            <h1>📖 Mech:anic — Инструкция <span class="update-badge">v1.1</span></h1>
+            <div class="subtitle">Полное руководство по игре</div>
+            <div class="instruction-section">
+                <h2>🎮 Что такое Mech:anic?</h2>
+                <p>Mech:anic — это симулятор электронных схем. Создавайте свои логические цепи из виртуальных компонентов!</p>
+            </div>
+            <div class="instruction-section">
+                <h2>🛠️ Инструменты</h2>
+                <div class="tool-grid">
+                    <div class="tool-item"><span class="tool-icon">✋</span> Рука — вкл/выкл элементы</div>
+                    <div class="tool-item"><span class="tool-icon">🧤</span> Перчатка — перетаскивание</div>
+                    <div class="tool-item"><span class="tool-icon">🔧</span> Гаечный ключ — провода</div>
+                    <div class="tool-item"><span class="tool-icon">🪛</span> Отвертка — настройка (включая Коллизию)</div>
+                    <div class="tool-item"><span class="tool-icon">🎨</span> Кисть — окрашивание</div>
+                    <div class="tool-item"><span class="tool-icon">🧹</span> Ластик — удаление</div>
+                    <div class="tool-item"><span class="tool-icon">➕</span> Спавн — добавление</div>
+                </div>
+            </div>
+            <div class="instruction-section">
+                <h2>⚡ Дающие поток</h2>
+                <ul>
+                    <li><strong>📡 Сенсор</strong> — работает пока зажат</li>
+                    <li><strong>⏺ Кнопка</strong> — работает пока зажата</li>
+                    <li><strong>🔘 Рычаг</strong> — вкл/выкл по клику</li>
+                    <li><strong>🔋 Аккумулятор</strong> — вкл/выкл по клику</li>
+                    <li><strong>⚡ Генератор</strong> — вкл/выкл по клику</li>
+                </ul>
+            </div>
+            <div class="instruction-section">
+                <h2>🔧 Активируемые</h2>
+                <ul>
+                    <li><strong>💡 Лампа</strong> — загорается при сигнале</li>
+                    <li><strong>🖥️ Дисплей</strong> — меняет цвет при сигнале</li>
+                    <li><strong>🔲 Чип</strong> — 50+ моделей логики</li>
+                    <li><strong>📏 Резистор</strong> — пропускает сигнал</li>
+                    <li><strong>⚙️ Мотор</strong> — включается при сигнале</li>
+                    <li><strong>🔊 Динамик</strong> — играет ноту или музыку</li>
+                    <li><strong>⏱️ Таймер</strong> — задерживает сигнал</li>
+                </ul>
+            </div>
+            <div class="instruction-section">
+                <h2>🛡️ Коллизия</h2>
+                <p>У всех элементов изначально включена коллизия — они могут сталкиваться друг с другом.</p>
+                <p>Отверткой можно отключить коллизию для любого элемента.</p>
+            </div>
+            <div class="page-indicator">📖 Инструкция</div>
+        </div>
     </div>
-    <div class="tools">
-        <button class="btn" id="smile">😊 Смайлик</button>
-        <button class="btn" id="heart">❤️ Сердце</button>
-        <button class="btn" id="star">⭐ Звезда</button>
+
+    <!-- ===== ИГРА ===== -->
+    <div class="game-screen" id="gameScreen">
+        <div class="toolbar">
+            <button class="tool-btn active" id="toolHand">✋ Рука</button>
+            <button class="tool-btn" id="toolGlove">🧤 Перчатка</button>
+            <button class="tool-btn" id="toolWrench">🔧 Гаечный ключ</button>
+            <button class="tool-btn" id="toolScrewdriver">🪛 Отвертка</button>
+            <button class="tool-btn" id="toolPaint">🎨 Кисть</button>
+            <button class="tool-btn" id="toolEraser">🧹 Ластик</button>
+            <button class="tool-btn" id="toolSpawn">➕ Спавн</button>
+            <div style="flex:1;"></div>
+            <button class="tool-btn" id="btnBackMenu" style="background:#2a1a2a;border-color:#5a3a4a;">✕</button>
+        </div>
+
+        <div class="field-wrapper">
+            <div class="field" id="field"></div>
+
+            <div class="spawn-panel" id="spawnPanel">
+                <div class="spawn-category">⚡ Дающие поток</div>
+                <div class="spawn-item" data-type="sensor"><span>📡</span> Сенсор</div>
+                <div class="spawn-item" data-type="button"><span>⏺</span> Кнопка</div>
+                <div class="spawn-item" data-type="switch"><span>🔘</span> Рычаг</div>
+                <div class="spawn-item" data-type="battery"><span>🔋</span> Аккумулятор</div>
+                <div class="spawn-item" data-type="generator"><span>⚡</span> Генератор</div>
+                
+                <div class="spawn-category">🔧 Активируемые</div>
+                <div class="spawn-item" data-type="lamp"><span>💡</span> Лампа</div>
+                <div class="spawn-item" data-type="display"><span>🖥️</span> Дисплей</div>
+                <div class="spawn-item" data-type="chip"><span>🔲</span> Чип</div>
+                <div class="spawn-item" data-type="resistor"><span>📏</span> Резистор</div>
+                <div class="spawn-item" data-type="motor"><span>⚙️</span> Мотор</div>
+                <div class="spawn-item" data-type="speaker"><span>🔊</span> Динамик</div>
+                <div class="spawn-item" data-type="timer"><span>⏱️</span> Таймер</div>
+            </div>
+
+            <div class="settings-panel" id="settingsPanel">
+                <label id="settingsLabel">Настройки</label>
+                <div id="settingsContent"></div>
+            </div>
+
+            <div class="paint-panel" id="paintPanel">
+                <label>Выберите цвет</label>
+                <input type="color" id="paintColor" value="#ff6644">
+                <div class="color-preview" id="colorPreview" style="background:#ff6644;"></div>
+                <label style="font-size:0.55rem;opacity:0.6;">Нажмите на элемент чтобы окрасить</label>
+            </div>
+        </div>
     </div>
-    <div class="info">🖌️ Зажми палец и води по холсту</div>
-</div>
-<script>
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    let painting = false;
-    let color = '#000';
-    let size = 5;
-    
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    function getXY(e) {
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-        let x, y;
-        if (e.touches) {
-            x = (e.touches[0].clientX - rect.left) * scaleX;
-            y = (e.touches[0].clientY - rect.top) * scaleY;
-        } else {
-            x = (e.clientX - rect.left) * scaleX;
-            y = (e.clientY - rect.top) * scaleY;
-        }
-        return { x: Math.min(Math.max(0,x), canvas.width), y: Math.min(Math.max(0,y), canvas.height) };
-    }
-    
-    function start(e) { e.preventDefault(); painting = true; let p = getXY(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x, p.y); ctx.stroke(); }
-    function draw(e) { if (!painting) return; e.preventDefault(); let p = getXY(e); ctx.strokeStyle = color; ctx.lineWidth = size; ctx.lineCap = 'round'; ctx.lineTo(p.x, p.y); ctx.stroke(); ctx.beginPath(); ctx.moveTo(p.x, p.y); }
-    function stop(e) { painting = false; ctx.beginPath(); }
-    
-    canvas.addEventListener('mousedown', start);
-    canvas.addEventListener('mousemove', draw);
-    canvas.addEventListener('mouseup', stop);
-    canvas.addEventListener('touchstart', start);
-    canvas.addEventListener('touchmove', draw);
-    canvas.addEventListener('touchend', stop);
-    
-    document.querySelectorAll('.color').forEach(c => c.addEventListener('click', () => { color = c.style.background; }));
-    document.getElementById('size').oninput = (e) => { size = e.target.value; document.getElementById('sizeVal').innerText = size; };
-    document.getElementById('clear').onclick = () => { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height); };
-    document.getElementById('save').onclick = () => { let a = document.createElement('a'); a.href = canvas.toDataURL(); a.download = 'draw.png'; a.click(); };
-    document.getElementById('smile').onclick = () => { drawTemplate('smile'); };
-    document.getElementById('heart').onclick = () => { drawTemplate('heart'); };
-    document.getElementById('star').onclick = () => { drawTemplate('star'); };
-    
-    function drawTemplate(t) {
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = color;
-        let cx = canvas.width/2, cy = canvas.height/2;
-        if (t === 'smile') {
-            ctx.beginPath(); ctx.arc(cx, cy-20, 100, 0, 2*Math.PI); ctx.stroke();
-            ctx.beginPath(); ctx.arc(cx-40, cy-50, 15, 0, 2*Math.PI); ctx.fill();
-            ctx.beginPath(); ctx.arc(cx+40, cy-50, 15, 0, 2*Math.PI); ctx.fill();
-            ctx.beginPath(); ctx.arc(cx, cy+10, 40, 0.1, Math.PI-0.1); ctx.stroke();
-        } else if (t === 'heart') {
-            ctx.beginPath();
-            ctx.moveTo(cx, cy+40);
-            ctx.bezierCurveTo(cx, cy+40, cx-80, cy-40, cx, cy);
-            ctx.bezierCurveTo(cx+80, cy-40, cx, cy+40, cx, cy+40);
-            ctx.fill();
-        } else if (t === 'star') {
-            let spikes=5, outer=70, inner=35, step=Math.PI/spikes, rot=Math.PI/2*3;
-            ctx.beginPath();
-            for(let i=0; i<spikes; i++) {
-                let x1 = cx + Math.cos(rot+i*step)*outer;
-                let y1 = cy-30 + Math.sin(rot+i*step)*outer;
-                let x2 = cx + Math.cos(rot+(i+0.5)*step)*inner;
-                let y2 = cy-30 + Math.sin(rot+(i+0.5)*step)*inner;
-                if(i==0) ctx.moveTo(x1,y1); else ctx.lineTo(x1,y1);
-                ctx.lineTo(x2,y2);
+
+    <!-- Аудио для динамика -->
+    <audio id="audioPlayer" class="audio-player"></audio>
+
+    <script>
+        (function() {
+            // ===== МЕНЮ =====
+            const menuScreen = document.getElementById('menuScreen');
+            const gameScreen = document.getElementById('gameScreen');
+            const titleRow = document.getElementById('titleRow');
+            const playBtn = document.getElementById('playBtn');
+            const instructionBtn = document.getElementById('instructionBtn');
+            const instructionScreen = document.getElementById('instructionScreen');
+            const instructionClose = document.getElementById('instructionClose');
+            const updateBtn = document.getElementById('updateBtn');
+            const btnBackMenu = document.getElementById('btnBackMenu');
+
+            const title = "Mech:anic";
+            title.split('').forEach((char) => {
+                const chip = document.createElement('div');
+                chip.className = 'title-chip';
+                chip.textContent = char;
+                chip.dataset.fallen = 'false';
+                chip.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    if (this.classList.contains('falling') || this.dataset.fallen === 'true') return;
+                    this.classList.add('fallen');
+                    this.dataset.fallen = 'true';
+                    this.classList.add('falling');
+                    setTimeout(() => this.classList.remove('falling'), 1500);
+                });
+                titleRow.appendChild(chip);
+            });
+
+            instructionBtn.addEventListener('click', function() {
+                instructionScreen.classList.add('open');
+            });
+            instructionClose.addEventListener('click', function() {
+                instructionScreen.classList.remove('open');
+            });
+            instructionScreen.addEventListener('click', function(e) {
+                if (e.target === this) instructionScreen.classList.remove('open');
+            });
+
+            updateBtn.addEventListener('click', function() {
+                alert('🔄 Обновление 1.1\n\n✅ Увеличен хитбокс рычага\n✅ Таймер квадратный с цифровым отсчётом\n✅ Настройка "Коллизия" для всех элементов\n✅ Элементы могут сталкиваться друг с другом\n✅ Отключение коллизии через отвертку');
+            });
+
+            playBtn.addEventListener('click', function() {
+                menuScreen.classList.add('hidden');
+                gameScreen.classList.add('active');
+                initGame();
+            });
+
+            btnBackMenu.addEventListener('click', function() {
+                gameScreen.classList.remove('active');
+                menuScreen.classList.remove('hidden');
+            });
+
+            // ===== АУДИО =====
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            let loadedAudioBuffer = null;
+
+            function playNote(frequency, duration = 0.5) {
+                try {
+                    const oscillator = audioCtx.createOscillator();
+                    const gainNode = audioCtx.createGain();
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+                    oscillator.type = 'sine';
+                    oscillator.frequency.value = frequency;
+                    gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+                    oscillator.start(audioCtx.currentTime);
+                    oscillator.stop(audioCtx.currentTime + duration);
+                } catch(e) {}
             }
-            ctx.closePath(); ctx.fill();
-        }
-    }
-</script>
+
+            function playLoadedAudio() {
+                if (loadedAudioBuffer) {
+                    try {
+                        const source = audioCtx.createBufferSource();
+                        const gainNode = audioCtx.createGain();
+                        source.buffer = loadedAudioBuffer;
+                        source.connect(gainNode);
+                        gainNode.connect(audioCtx.destination);
+                        gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                        source.start(audioCtx.currentTime);
+                    } catch(e) {}
+                }
+            }
+
+            const noteFrequencies = {
+                'C': 261.63, 'C#': 277.18, 'D': 293.66, 'D#': 311.13,
+                'E': 329.63, 'F': 349.23, 'F#': 369.99, 'G': 392.00,
+                'G#': 415.30, 'A': 440.00, 'A#': 466.16, 'B': 493.88
+            };
+
+            function getFrequency(note, octave) {
+                const baseFreq = noteFrequencies[note] || 440;
+                return baseFreq * Math.pow(2, octave - 4);
+            }
+
+            // ===== ИГРА =====
+            const field = document.getElementById('field');
+            const spawnPanel = document.getElementById('spawnPanel');
+            const settingsPanel = document.getElementById('settingsPanel');
+            const settingsContent = document.getElementById('settingsContent');
+            const settingsLabel = document.getElementById('settingsLabel');
+            const paintPanel = document.getElementById('paintPanel');
+            const paintColor = document.getElementById('paintColor');
+            const colorPreview = document.getElementById('colorPreview');
+            const toolHand = document.getElementById('toolHand');
+            const toolGlove = document.getElementById('toolGlove');
+            const toolWrench = document.getElementById('toolWrench');
+            const toolScrewdriver = document.getElementById('toolScrewdriver');
+            const toolPaint = document.getElementById('toolPaint');
+            const toolEraser = document.getElementById('toolEraser');
+            const toolSpawn = document.getElementById('toolSpawn');
+
+            let selectedTool = 'hand';
+            let fieldItems = [];
+            let wires = [];
+            let selectedElement = null;
+            let wireStart = null;
+            let tempWire = null;
+            let dragData = null;
+            let ghost = null;
+            let isPointerDown = false;
+            let pointerTarget = null;
+            let isEraserActive = false;
+            let timerTimeouts = {};
+            let isDragging = false;
+
+            // Переменные для очереди движений
+            let lastMoveTime = 0;
+            let moveQueue = [];
+
+            const chipTypes = [
+                'AND', 'OR', 'XOR', 'NAND', 'NOR', 'NOT', 'BUFFER',
+                'AND3', 'OR3', 'XOR3', 'NAND3', 'NOR3',
+                'AND4', 'OR4', 'XOR4', 'NAND4', 'NOR4',
+                'AND8', 'OR8', 'XOR8', 'NAND8', 'NOR8',
+                'MAJ3', 'MAJ5', 'MIN3', 'MIN5',
+                'EVEN', 'ODD', 'ALL', 'ANY', 'NONE',
+                'MUX2', 'MUX4', 'MUX8',
+                'DEMUX2', 'DEMUX4', 'DEMUX8',
+                'ADD', 'SUB', 'MUL', 'DIV',
+                'MOD', 'POW', 'ABS', 'NEG',
+                'LATCH', 'FLIP', 'DELAY'
+            ];
+
+            const chipLogic = {
+                'AND': (inputs) => inputs.every(x => x === true),
+                'OR': (inputs) => inputs.some(x => x === true),
+                'XOR': (inputs) => inputs.filter(x => x === true).length % 2 === 1,
+                'NAND': (inputs) => !inputs.every(x => x === true),
+                'NOR': (inputs) => !inputs.some(x => x === true),
+                'NOT': (inputs) => !(inputs[0] || false),
+                'BUFFER': (inputs) => inputs[0] || false,
+                'AND3': (inputs) => inputs.every(x => x === true),
+                'OR3': (inputs) => inputs.some(x => x === true),
+                'XOR3': (inputs) => inputs.filter(x => x === true).length % 2 === 1,
+                'NAND3': (inputs) => !inputs.every(x => x === true),
+                'NOR3': (inputs) => !inputs.some(x => x === true),
+                'AND4': (inputs) => inputs.every(x => x === true),
+                'OR4': (inputs) => inputs.some(x => x === true),
+                'XOR4': (inputs) => inputs.filter(x => x === true).length % 2 === 1,
+                'NAND4': (inputs) => !inputs.every(x => x === true),
+                'NOR4': (inputs) => !inputs.some(x => x === true),
+                'AND8': (inputs) => inputs.every(x => x === true),
+                'OR8': (inputs) => inputs.some(x => x === true),
+                'XOR8': (inputs) => inputs.filter(x => x === true).length % 2 === 1,
+                'NAND8': (inputs) => !inputs.every(x => x === true),
+                'NOR8': (inputs) => !inputs.some(x => x === true),
+                'MAJ3': (inputs) => inputs.filter(x => x === true).length >= 2,
+                'MAJ5': (inputs) => inputs.filter(x => x === true).length >= 3,
+                'MIN3': (inputs) => inputs.filter(x => x === true).length <= 1,
+                'MIN5': (inputs) => inputs.filter(x => x === true).length <= 2,
+                'EVEN': (inputs) => inputs.filter(x => x === true).length % 2 === 0,
+                'ODD': (inputs) => inputs.filter(x => x === true).length % 2 === 1,
+                'ALL': (inputs) => inputs.every(x => x === true),
+                'ANY': (inputs) => inputs.some(x => x === true),
+                'NONE': (inputs) => inputs.every(x => x === false),
+                'MUX2': (inputs) => {
+                    if (inputs.length < 3) return false;
+                    return inputs[0] ? inputs[2] : inputs[1];
+                },
+                'MUX4': (inputs) => {
+                    if (inputs.length < 6) return false;
+                    const sel = (inputs[0] ? 2 : 0) + (inputs[1] ? 1 : 0);
+                    return inputs[sel + 2] || false;
+                },
+                'MUX8': (inputs) => {
+                    if (inputs.length < 11) return false;
+                    const sel = (inputs[0] ? 4 : 0) + (inputs[1] ? 2 : 0) + (inputs[2] ? 1 : 0);
+                    return inputs[sel + 3] || false;
+                },
+                'DEMUX2': (inputs) => {
+                    if (inputs.length < 2) return false;
+                    return inputs[0] ? inputs[1] : false;
+                },
+                'DEMUX4': (inputs) => {
+                    if (inputs.length < 3) return false;
+                    const sel = (inputs[0] ? 2 : 0) + (inputs[1] ? 1 : 0);
+                    return sel === 0 ? inputs[2] : false;
+                },
+                'DEMUX8': (inputs) => {
+                    if (inputs.length < 4) return false;
+                    const sel = (inputs[0] ? 4 : 0) + (inputs[1] ? 2 : 0) + (inputs[2] ? 1 : 0);
+                    return sel === 0 ? inputs[3] : false;
+                },
+                'ADD': (inputs) => inputs.every(x => x === true),
+                'SUB': (inputs) => inputs[0] && !inputs[1],
+                'MUL': (inputs) => inputs.every(x => x === true),
+                'DIV': (inputs) => inputs[0] && !inputs[1],
+                'MOD': (inputs) => inputs[0] && !inputs[1],
+                'POW': (inputs) => inputs.some(x => x === true),
+                'ABS': (inputs) => inputs[0] || false,
+                'NEG': (inputs) => !inputs[0],
+                'LATCH': (inputs) => {
+                    if (inputs.length < 2) return false;
+                    return inputs[0] ? inputs[1] : false;
+                },
+                'FLIP': (inputs) => {
+                    if (inputs.length < 2) return false;
+                    return inputs[0] ? !inputs[1] : inputs[1];
+                },
+                'DELAY': (inputs) => inputs[0] || false
+            };
+
+            let itemStates = {};
+
+            const powerGivers = ['sensor', 'button', 'switch', 'battery', 'generator'];
+            const powerTakers = ['lamp', 'display', 'chip', 'resistor', 'motor', 'speaker', 'timer'];
+
+            // ===== КОЛЛИЗИЯ =====
+            function checkCollision(el, newX, newY) {
+                // Если у элемента нет коллизии - он может двигаться сквозь всё
+                if (el.dataset.collision === 'false') {
+                    const fieldRect = field.getBoundingClientRect();
+                    const w = el.offsetWidth;
+                    const h = el.offsetHeight;
+                    if (newX < 0) newX = 0;
+                    if (newY < 0) newY = 0;
+                    if (newX + w > fieldRect.width) newX = fieldRect.width - w;
+                    if (newY + h > fieldRect.height) newY = fieldRect.height - h;
+                    return { x: newX, y: newY, blocked: false };
+                }
+                
+                const fieldRect = field.getBoundingClientRect();
+                const w = el.offsetWidth;
+                const h = el.offsetHeight;
+                
+                if (newX < 0) newX = 0;
+                if (newY < 0) newY = 0;
+                if (newX + w > fieldRect.width) newX = fieldRect.width - w;
+                if (newY + h > fieldRect.height) newY = fieldRect.height - h;
+                
+                for (const other of fieldItems) {
+                    if (other === el) continue;
+                    if (other.dataset.collision === 'false') continue;
+                    
+                    const otherX = parseFloat(other.style.left) || 0;
+                    const otherY = parseFloat(other.style.top) || 0;
+                    const otherW = other.offsetWidth;
+                    const otherH = other.offsetHeight;
+                    
+                    if (newX < otherX + otherW && newX + w > otherX &&
+                        newY < otherY + otherH && newY + h > otherY) {
+                        const currentX = parseFloat(el.style.left) || 0;
+                        const currentY = parseFloat(el.style.top) || 0;
+                        return { x: currentX, y: currentY, blocked: true };
+                    }
+                }
+                
+                return { x: newX, y: newY, blocked: false };
+            }
+
+            function checkSpawnCollision(x, y, w, h, excludeEl) {
+                for (const other of fieldItems) {
+                    if (other === excludeEl) continue;
+                    if (other.dataset.collision === 'false') continue;
+                    
+                    const otherX = parseFloat(other.style.left) || 0;
+                    const otherY = parseFloat(other.style.top) || 0;
+                    const otherW = other.offsetWidth;
+                    const otherH = other.offsetHeight;
+                    
+                    if (x < otherX + otherW && x + w > otherX &&
+                        y < otherY + otherH && y + h > otherY) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            function updateCollisionVisuals() {
+                fieldItems.forEach(el => {
+                    if (el.dataset.collision === 'false') {
+                        el.classList.add('no-collision');
+                    } else {
+                        el.classList.remove('no-collision');
+                    }
+                });
+            }
+
+            function initGame() {
+                field.innerHTML = '';
+                fieldItems = [];
+                wires = [];
+                itemStates = {};
+                timerTimeouts = {};
+                loadedAudioBuffer = null;
+                selectedElement = null;
+                wireStart = null;
+                isPointerDown = false;
+                pointerTarget = null;
+                isEraserActive = false;
+                isDragging = false;
+                moveQueue = [];
+                lastMoveTime = 0;
+                if (tempWire) { tempWire.remove(); tempWire = null; }
+                spawnPanel.classList.remove('open');
+                settingsPanel.classList.remove('open');
+                paintPanel.classList.remove('open');
+                document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+                toolHand.classList.add('active');
+                selectedTool = 'hand';
+            }
+
+            function setTool(tool) {
+                document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+                selectedTool = tool;
+                if (tool === 'hand') toolHand.classList.add('active');
+                else if (tool === 'glove') toolGlove.classList.add('active');
+                else if (tool === 'wire') toolWrench.classList.add('active');
+                else if (tool === 'settings') toolScrewdriver.classList.add('active');
+                else if (tool === 'paint') toolPaint.classList.add('active');
+                else if (tool === 'eraser') toolEraser.classList.add('active');
+                else if (tool === 'spawn') toolSpawn.classList.add('active');
+                
+                spawnPanel.classList.remove('open');
+                settingsPanel.classList.remove('open');
+                paintPanel.classList.remove('open');
+                if (tool === 'spawn') spawnPanel.classList.add('open');
+                if (tool === 'paint') paintPanel.classList.add('open');
+                if (tool === 'wire') {
+                    wireStart = null;
+                    if (tempWire) { tempWire.remove(); tempWire = null; }
+                }
+                if (tool === 'eraser') {
+                    field.style.cursor = 'none';
+                    isEraserActive = true;
+                } else {
+                    field.style.cursor = 'default';
+                    isEraserActive = false;
+                }
+            }
+
+            toolHand.addEventListener('click', () => setTool('hand'));
+            toolGlove.addEventListener('click', () => setTool('glove'));
+            toolWrench.addEventListener('click', () => setTool('wire'));
+            toolScrewdriver.addEventListener('click', () => {
+                if (selectedTool === 'settings') setTool('hand');
+                else setTool('settings');
+                if (!selectedElement) settingsPanel.classList.remove('open');
+            });
+            toolPaint.addEventListener('click', () => setTool('paint'));
+            toolEraser.addEventListener('click', () => setTool('eraser'));
+            toolSpawn.addEventListener('click', () => {
+                if (selectedTool === 'spawn') setTool('hand');
+                else setTool('spawn');
+            });
+
+            paintColor.addEventListener('input', function() {
+                colorPreview.style.background = this.value;
+            });
+
+            // ===== ЛАСТИК =====
+            field.addEventListener('mousemove', function(e) {
+                if (selectedTool === 'eraser') {
+                    const rect = field.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    eraseAt(x, y);
+                }
+            });
+
+            field.addEventListener('touchmove', function(e) {
+                if (selectedTool === 'eraser') {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const rect = field.getBoundingClientRect();
+                    const x = touch.clientX - rect.left;
+                    const y = touch.clientY - rect.top;
+                    eraseAt(x, y);
+                }
+            }, {passive: false});
+
+            function eraseAt(x, y) {
+                const radius = 30;
+                const toRemove = [];
+                fieldItems.forEach(el => {
+                    const rect = el.getBoundingClientRect();
+                    const fieldRect = field.getBoundingClientRect();
+                    const cx = rect.left + rect.width/2 - fieldRect.left;
+                    const cy = rect.top + rect.height/2 - fieldRect.top;
+                    const dist = Math.sqrt((cx - x) ** 2 + (cy - y) ** 2);
+                    if (dist < radius) {
+                        toRemove.push(el);
+                    }
+                });
+                toRemove.forEach(el => {
+                    if (timerTimeouts[el.id]) {
+                        clearTimeout(timerTimeouts[el.id]);
+                        delete timerTimeouts[el.id];
+                    }
+                    const toRemoveWires = [];
+                    wires.forEach(w => {
+                        if (w.from === el.id || w.to === el.id) {
+                            toRemoveWires.push(w);
+                        }
+                    });
+                    toRemoveWires.forEach(w => {
+                        w.el.remove();
+                        wires = wires.filter(w2 => w2.id !== w.id);
+                    });
+                    el.remove();
+                    fieldItems = fieldItems.filter(e => e.id !== el.id);
+                    delete itemStates[el.id];
+                });
+                updateLogic();
+            }
+
+            // ===== СПАВН =====
+            document.querySelectorAll('.spawn-item').forEach(item => {
+                item.addEventListener('mousedown', startSpawnDrag);
+                item.addEventListener('touchstart', startSpawnDragTouch, {passive: false});
+            });
+
+            function startSpawnDrag(e) {
+                e.preventDefault();
+                const type = this.dataset.type;
+                startDragging(e.clientX, e.clientY, type);
+            }
+
+            function startSpawnDragTouch(e) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const type = this.dataset.type;
+                startDragging(touch.clientX, touch.clientY, type);
+            }
+
+            function startDragging(x, y, type) {
+                if (ghost) { document.body.removeChild(ghost); ghost = null; }
+                ghost = document.createElement('div');
+                ghost.className = 'ghost';
+                const label = getItemLabel(type);
+                ghost.innerHTML = `<span>${getItemIcon(type)}</span> ${label}`;
+                ghost.style.left = (x - 25) + 'px';
+                ghost.style.top = (y - 15) + 'px';
+                document.body.appendChild(ghost);
+                dragData = { type };
+
+                document.addEventListener('mousemove', onDragMove);
+                document.addEventListener('mouseup', onDragEnd);
+                document.addEventListener('touchmove', onDragMoveTouch, {passive: false});
+                document.addEventListener('touchend', onDragEndTouch, {passive: false});
+            }
+
+            function onDragMove(e) {
+                if (ghost) {
+                    ghost.style.left = (e.clientX - 25) + 'px';
+                    ghost.style.top = (e.clientY - 15) + 'px';
+                }
+                showGhostOnField(e.clientX, e.clientY);
+            }
+
+            function onDragMoveTouch(e) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                if (ghost) {
+                    ghost.style.left = (touch.clientX - 25) + 'px';
+                    ghost.style.top = (touch.clientY - 15) + 'px';
+                }
+                showGhostOnField(touch.clientX, touch.clientY);
+            }
+
+            function showGhostOnField(cx, cy) {
+                document.querySelectorAll('.field-ghost').forEach(el => el.remove());
+                if (!dragData) return;
+                const rect = field.getBoundingClientRect();
+                const x = cx - rect.left;
+                const y = cy - rect.top;
+                if (x < 0 || y < 0 || x > rect.width || y > rect.height) return;
+                
+                const ghostEl = document.createElement('div');
+                ghostEl.className = 'field-ghost';
+                ghostEl.style.position = 'absolute';
+                ghostEl.style.left = (x - 20) + 'px';
+                ghostEl.style.top = (y - 20) + 'px';
+                ghostEl.style.opacity = '0.3';
+                ghostEl.style.border = '2px dashed #6a8acf';
+                ghostEl.style.borderRadius = '8px';
+                ghostEl.style.pointerEvents = 'none';
+                ghostEl.style.width = '50px';
+                ghostEl.style.height = '50px';
+                if (dragData.type === 'display') {
+                    ghostEl.style.width = '60px';
+                    ghostEl.style.height = '40px';
+                }
+                if (dragData.type === 'chip') {
+                    ghostEl.style.width = '60px';
+                    ghostEl.style.height = '50px';
+                }
+                if (dragData.type === 'timer') {
+                    ghostEl.style.width = '60px';
+                    ghostEl.style.height = '60px';
+                }
+                if (dragData.type === 'switch') {
+                    ghostEl.style.width = '70px';
+                    ghostEl.style.height = '44px';
+                }
+                ghostEl.style.background = 'rgba(255,255,255,0.05)';
+                field.appendChild(ghostEl);
+            }
+
+            function onDragEnd(e) {
+                document.removeEventListener('mousemove', onDragMove);
+                document.removeEventListener('mouseup', onDragEnd);
+                document.removeEventListener('touchmove', onDragMoveTouch);
+                document.removeEventListener('touchend', onDragEndTouch);
+                finishDrag(e.clientX, e.clientY);
+            }
+
+            function onDragEndTouch(e) {
+                document.removeEventListener('mousemove', onDragMove);
+                document.removeEventListener('mouseup', onDragEnd);
+                document.removeEventListener('touchmove', onDragMoveTouch);
+                document.removeEventListener('touchend', onDragEndTouch);
+                if (e.changedTouches && e.changedTouches.length > 0) {
+                    finishDrag(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+                }
+            }
+
+            function finishDrag(cx, cy) {
+                if (ghost) { document.body.removeChild(ghost); ghost = null; }
+                document.querySelectorAll('.field-ghost').forEach(el => el.remove());
+                if (!dragData) return;
+
+                const rect = field.getBoundingClientRect();
+                let x = cx - rect.left - 25;
+                let y = cy - rect.top - 25;
+                
+                const fieldRect = field.getBoundingClientRect();
+                if (x < 0) x = 0;
+                if (y < 0) y = 0;
+                if (x + 50 > fieldRect.width) x = fieldRect.width - 50;
+                if (y + 50 > fieldRect.height) y = fieldRect.height - 50;
+
+                const w = dragData.type === 'display' ? 60 : (dragData.type === 'timer' ? 60 : 50);
+                const h = dragData.type === 'display' ? 40 : (dragData.type === 'timer' ? 60 : 50);
+                
+                const tempEl = document.createElement('div');
+                tempEl.style.width = w + 'px';
+                tempEl.style.height = h + 'px';
+                tempEl.style.left = x + 'px';
+                tempEl.style.top = y + 'px';
+                tempEl.dataset.collision = 'true';
+                field.appendChild(tempEl);
+                
+                const hasCollision = checkSpawnCollision(x, y, w, h, tempEl);
+                tempEl.remove();
+                
+                if (!hasCollision) {
+                    spawnItem(dragData.type, x, y);
+                }
+                dragData = null;
+            }
+
+            function getItemIcon(type) {
+                const icons = {
+                    sensor: '📡', button: '⏺', switch: '🔘', battery: '🔋',
+                    generator: '⚡', lamp: '💡', display: '🖥️', chip: '🔲',
+                    resistor: '📏', motor: '⚙️', speaker: '🔊', timer: '⏱️'
+                };
+                return icons[type] || '📦';
+            }
+
+            function getItemLabel(type) {
+                const labels = {
+                    sensor: 'Сенсор', button: 'Кнопка', switch: 'Рычаг', battery: 'Аккум',
+                    generator: 'Генер', lamp: 'Лампа', display: 'Дисплей', chip: 'Чип',
+                    resistor: 'R', motor: 'M', speaker: 'Динамик', timer: 'Таймер'
+                };
+                return labels[type] || type;
+            }
+
+            function spawnItem(type, x, y) {
+                const el = document.createElement('div');
+                el.id = 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+                el.dataset.type = type;
+                el.dataset.chipType = 'AND';
+                el.dataset.powered = 'false';
+                el.dataset.color = '#4a5f8a';
+                el.dataset.batteryPower = '50';
+                el.dataset.displayColor = '#000000';
+                el.dataset.lampColor = '#ffffff';
+                el.dataset.timerDelay = '1.0';
+                el.dataset.speakerNote = 'A';
+                el.dataset.speakerOctave = '4';
+                el.dataset.speakerMode = 'note';
+                el.dataset.collision = 'true';
+                el.style.left = x + 'px';
+                el.style.top = y + 'px';
+                
+                if (type === 'lamp') {
+                    el.className = 'field-item type-lamp';
+                    el.style.width = '50px';
+                    el.style.height = '50px';
+                    el.style.background = '#2a2a2a';
+                    el.style.borderColor = '#444';
+                } else if (type === 'sensor') {
+                    el.className = 'field-item type-sensor';
+                    el.style.width = '50px';
+                    el.style.height = '50px';
+                } else if (type === 'display') {
+                    el.className = 'field-item type-display';
+                    el.style.width = '60px';
+                    el.style.height = '40px';
+                    el.style.background = '#ffffff';
+                    el.style.borderColor = '#888';
+                } else if (type === 'chip') {
+                    el.className = 'field-item type-chip';
+                    el.style.minWidth = '60px';
+                    el.style.minHeight = '50px';
+                    el.style.padding = '4px 10px';
+                    el.style.display = 'flex';
+                    el.style.alignItems = 'center';
+                    el.style.gap = '6px';
+                    el.innerHTML = `<span class="chip-label">AND</span><span class="output-indicator" id="out_${el.id}"></span>`;
+                } else if (type === 'timer') {
+                    el.className = 'field-item type-timer';
+                    el.style.width = '60px';
+                    el.style.height = '60px';
+                    el.style.minWidth = '60px';
+                    el.style.minHeight = '60px';
+                    el.style.borderColor = '#ff8833';
+                    el.style.position = 'relative';
+                    el.style.display = 'flex';
+                    el.style.flexDirection = 'column';
+                    el.style.alignItems = 'center';
+                    el.style.justifyContent = 'center';
+                    el.style.gap = '0px';
+                    el.style.padding = '4px';
+                    el.innerHTML = `
+                        <span class="item-icon" style="font-size:1rem;">⏱️</span>
+                        <span class="timer-label" id="timerLabel_${el.id}">1.00с</span>
+                        <span class="timer-sub" id="timerSub_${el.id}">000мс</span>
+                        <span class="indicator" id="ind_${el.id}" style="position:absolute;top:4px;right:4px;width:8px;height:8px;"></span>
+                        <div class="timer-bg"></div>
+                        <div class="timer-progress" id="progress_${el.id}"></div>
+                    `;
+                } else if (type === 'switch') {
+                    el.className = 'field-item type-switch';
+                    el.style.minWidth = '70px';
+                    el.style.minHeight = '44px';
+                    el.style.padding = '6px 14px';
+                    el.style.display = 'flex';
+                    el.style.alignItems = 'center';
+                    el.style.gap = '8px';
+                    el.innerHTML = `<span>Рычаг</span><span class="indicator" id="ind_${el.id}"></span>`;
+                } else {
+                    el.className = 'field-item with-indicator';
+                    const icon = getItemIcon(type);
+                    const label = getItemLabel(type);
+                    el.style.minWidth = '50px';
+                    el.style.minHeight = '40px';
+                    el.style.padding = '4px 10px';
+                    el.style.display = 'flex';
+                    el.style.alignItems = 'center';
+                    el.style.gap = '6px';
+                    el.innerHTML = `<span class="item-icon">${icon}</span><span class="item-label">${label}</span><span class="indicator" id="ind_${el.id}"></span>`;
+                }
+                
+                el.addEventListener('mousedown', onItemMouseDown);
+                el.addEventListener('touchstart', onItemTouchStart, {passive: false});
+                
+                // Сенсор
+                if (type === 'sensor') {
+                    el.addEventListener('pointerdown', function(e) {
+                        if (selectedTool === 'hand') {
+                            e.preventDefault();
+                            isPointerDown = true;
+                            pointerTarget = this;
+                            this.classList.add('active');
+                            itemStates[this.id].powered = true;
+                            itemStates[this.id].value = true;
+                            updateLogic();
+                            updateVisuals();
+                        }
+                    });
+                    el.addEventListener('pointerup', function(e) {
+                        if (selectedTool === 'hand' && isPointerDown && pointerTarget === this) {
+                            isPointerDown = false;
+                            pointerTarget = null;
+                            this.classList.remove('active');
+                            itemStates[this.id].powered = false;
+                            itemStates[this.id].value = false;
+                            updateLogic();
+                            updateVisuals();
+                        }
+                    });
+                    el.addEventListener('pointerleave', function(e) {
+                        if (selectedTool === 'hand' && isPointerDown && pointerTarget === this) {
+                            isPointerDown = false;
+                            pointerTarget = null;
+                            this.classList.remove('active');
+                            itemStates[this.id].powered = false;
+                            itemStates[this.id].value = false;
+                            updateLogic();
+                            updateVisuals();
+                        }
+                    });
+                }
+                
+                // Кнопка
+                if (type === 'button') {
+                    el.addEventListener('pointerdown', function(e) {
+                        if (selectedTool === 'hand') {
+                            e.preventDefault();
+                            isPointerDown = true;
+                            pointerTarget = this;
+                            this.classList.add('active');
+                            itemStates[this.id].powered = true;
+                            itemStates[this.id].value = true;
+                            updateLogic();
+                            updateVisuals();
+                        }
+                    });
+                    el.addEventListener('pointerup', function(e) {
+                        if (selectedTool === 'hand' && isPointerDown && pointerTarget === this) {
+                            isPointerDown = false;
+                            pointerTarget = null;
+                            this.classList.remove('active');
+                            itemStates[this.id].powered = false;
+                            itemStates[this.id].value = false;
+                            updateLogic();
+                            updateVisuals();
+                        }
+                    });
+                    el.addEventListener('pointerleave', function(e) {
+                        if (selectedTool === 'hand' && isPointerDown && pointerTarget === this) {
+                            isPointerDown = false;
+                            pointerTarget = null;
+                            this.classList.remove('active');
+                            itemStates[this.id].powered = false;
+                            itemStates[this.id].value = false;
+                            updateLogic();
+                            updateVisuals();
+                        }
+                    });
+                }
+                
+                // Рычаг
+                if (type === 'switch') {
+                    el.addEventListener('click', function(e) {
+                        if (selectedTool === 'hand') {
+                            e.stopPropagation();
+                            const isActive = this.classList.toggle('active');
+                            const indicator = this.querySelector('.indicator');
+                            if (indicator) {
+                                if (isActive) indicator.classList.add('on');
+                                else indicator.classList.remove('on');
+                            }
+                            itemStates[this.id].powered = isActive;
+                            itemStates[this.id].value = isActive;
+                            updateLogic();
+                            updateVisuals();
+                        }
+                    });
+                }
+                
+                // Аккумулятор и генератор
+                if (type === 'battery' || type === 'generator') {
+                    el.addEventListener('click', function(e) {
+                        if (selectedTool === 'hand') {
+                            const isPowered = !itemStates[this.id].powered;
+                            itemStates[this.id].powered = isPowered;
+                            itemStates[this.id].value = isPowered;
+                            updateLogic();
+                            updateVisuals();
+                        }
+                    });
+                }
+                
+                field.appendChild(el);
+                fieldItems.push(el);
+                itemStates[el.id] = { powered: false, value: false, active: false };
+                
+                updateLogic();
+                updateVisuals();
+                updateCollisionVisuals();
+                return el;
+            }
+
+            // ===== ЛОГИКА =====
+            function updateLogic() {
+                const chips = fieldItems.filter(el => el.dataset.type === 'chip');
+                
+                chips.forEach(chip => {
+                    const chipId = chip.id;
+                    const inputs = [];
+                    
+                    wires.forEach(wire => {
+                        if (wire.to === chipId) {
+                            const fromEl = document.getElementById(wire.from);
+                            if (fromEl && itemStates[fromEl.id]) {
+                                inputs.push(itemStates[fromEl.id].value || false);
+                            }
+                        }
+                    });
+                    
+                    const chipType = chip.dataset.chipType || 'AND';
+                    const logicFn = chipLogic[chipType] || chipLogic['AND'];
+                    
+                    let result = false;
+                    try {
+                        if (inputs.length === 0 && ['NOT', 'BUFFER', 'ABS', 'NEG', 'DELAY'].includes(chipType)) {
+                            result = logicFn([false]);
+                        } else if (inputs.length === 0) {
+                            result = false;
+                        } else {
+                            result = logicFn(inputs);
+                        }
+                    } catch(e) {
+                        result = false;
+                    }
+                    
+                    itemStates[chipId].value = result;
+                    itemStates[chipId].powered = result;
+                });
+                
+                // Резистор
+                const resistors = fieldItems.filter(el => el.dataset.type === 'resistor');
+                resistors.forEach(el => {
+                    const inputs = [];
+                    wires.forEach(wire => {
+                        if (wire.to === el.id) {
+                            const fromEl = document.getElementById(wire.from);
+                            if (fromEl && itemStates[fromEl.id]) {
+                                inputs.push(itemStates[fromEl.id].value || false);
+                            }
+                        }
+                    });
+                    const val = inputs.some(x => x === true);
+                    itemStates[el.id].value = val;
+                    itemStates[el.id].powered = val;
+                });
+                
+                // Мотор
+                const motors = fieldItems.filter(el => el.dataset.type === 'motor');
+                motors.forEach(el => {
+                    const inputs = [];
+                    wires.forEach(wire => {
+                        if (wire.to === el.id) {
+                            const fromEl = document.getElementById(wire.from);
+                            if (fromEl && itemStates[fromEl.id]) {
+                                inputs.push(itemStates[fromEl.id].value || false);
+                            }
+                        }
+                    });
+                    const val = inputs.some(x => x === true);
+                    itemStates[el.id].value = val;
+                    itemStates[el.id].powered = val;
+                });
+                
+                // Динамик
+                const speakers = fieldItems.filter(el => el.dataset.type === 'speaker');
+                speakers.forEach(el => {
+                    const inputs = [];
+                    wires.forEach(wire => {
+                        if (wire.to === el.id) {
+                            const fromEl = document.getElementById(wire.from);
+                            if (fromEl && itemStates[fromEl.id]) {
+                                inputs.push(itemStates[fromEl.id].value || false);
+                            }
+                        }
+                    });
+                    const val = inputs.some(x => x === true);
+                    itemStates[el.id].value = val;
+                    itemStates[el.id].powered = val;
+                    if (val) {
+                        const mode = el.dataset.speakerMode || 'note';
+                        if (mode === 'note') {
+                            const note = el.dataset.speakerNote || 'A';
+                            const octave = parseInt(el.dataset.speakerOctave) || 4;
+                            const freq = getFrequency(note, octave);
+                            playNote(freq, 0.4);
+                        } else {
+                            playLoadedAudio();
+                        }
+                    }
+                });
+                
+                // Таймер
+                const timers = fieldItems.filter(el => el.dataset.type === 'timer');
+                timers.forEach(el => {
+                    const inputs = [];
+                    wires.forEach(wire => {
+                        if (wire.to === el.id) {
+                            const fromEl = document.getElementById(wire.from);
+                            if (fromEl && itemStates[fromEl.id]) {
+                                inputs.push(itemStates[fromEl.id].value || false);
+                            }
+                        }
+                    });
+                    const signal = inputs.some(x => x === true);
+                    
+                    if (signal !== itemStates[el.id]._lastSignal) {
+                        itemStates[el.id]._lastSignal = signal;
+                        
+                        if (signal) {
+                            const delay = parseFloat(el.dataset.timerDelay) || 1.0;
+                            el.classList.add('timer-active');
+                            el.style.setProperty('--timer-duration', delay + 's');
+                            
+                            const progress = el.querySelector('.timer-progress');
+                            if (progress) {
+                                progress.style.animation = 'none';
+                                progress.style.width = '100%';
+                                requestAnimationFrame(() => {
+                                    progress.style.animation = `timerProgress ${delay}s linear forwards`;
+                                });
+                            }
+                            
+                            const label = el.querySelector('.timer-label');
+                            const subLabel = el.querySelector('.timer-sub');
+                            const startTime = Date.now();
+                            const totalMs = delay * 1000;
+                            
+                            const updateTimerDisplay = () => {
+                                if (!itemStates[el.id] || itemStates[el.id]._lastSignal === false) {
+                                    return;
+                                }
+                                const elapsed = Date.now() - startTime;
+                                const remaining = Math.max(0, totalMs - elapsed);
+                                const seconds = Math.floor(remaining / 1000);
+                                const ms = Math.floor(remaining % 1000);
+                                if (label) label.textContent = seconds + '.' + String(ms).padStart(3, '0').substr(0, 2) + 'с';
+                                if (subLabel) subLabel.textContent = String(ms).padStart(3, '0') + 'мс';
+                                if (remaining > 0) {
+                                    requestAnimationFrame(updateTimerDisplay);
+                                }
+                            };
+                            
+                            if (timerTimeouts[el.id]) {
+                                clearTimeout(timerTimeouts[el.id]);
+                            }
+                            
+                            requestAnimationFrame(updateTimerDisplay);
+                            
+                            timerTimeouts[el.id] = setTimeout(() => {
+                                itemStates[el.id].powered = true;
+                                itemStates[el.id].value = true;
+                                el.classList.remove('timer-active');
+                                if (label) label.textContent = '0.00с';
+                                if (subLabel) subLabel.textContent = '000мс';
+                                updateLogic();
+                                updateVisuals();
+                            }, delay * 1000);
+                            itemStates[el.id].powered = false;
+                            itemStates[el.id].value = false;
+                        } else {
+                            if (timerTimeouts[el.id]) {
+                                clearTimeout(timerTimeouts[el.id]);
+                                delete timerTimeouts[el.id];
+                            }
+                            el.classList.remove('timer-active');
+                            const progress = el.querySelector('.timer-progress');
+                            if (progress) {
+                                progress.style.animation = 'none';
+                                progress.style.width = '0%';
+                            }
+                            const label = el.querySelector('.timer-label');
+                            const subLabel = el.querySelector('.timer-sub');
+                            if (label) label.textContent = '0.00с';
+                            if (subLabel) subLabel.textContent = '000мс';
+                            itemStates[el.id].powered = false;
+                            itemStates[el.id].value = false;
+                        }
+                    }
+                });
+                
+                // Обновляем провода
+                wires.forEach(wire => {
+                    const fromEl = document.getElementById(wire.from);
+                    const toEl = document.getElementById(wire.to);
+                    if (fromEl && toEl && itemStates[fromEl.id]) {
+                        const signal = itemStates[fromEl.id].powered || false;
+                        const toType = toEl.dataset.type;
+                        if (toType === 'battery' || toType === 'generator') {
+                            // Не перезаписываем
+                        } else if (toType === 'resistor' || toType === 'motor' || toType === 'speaker' || toType === 'timer') {
+                            // Эти элементы сами обрабатывают сигнал
+                        } else {
+                            itemStates[toEl.id].powered = signal;
+                            itemStates[toEl.id].value = signal;
+                        }
+                    }
+                    updateWireVisual(wire);
+                });
+                
+                updateVisuals();
+            }
+
+            function updateVisuals() {
+                fieldItems.forEach(el => {
+                    const type = el.dataset.type;
+                    const state = itemStates[el.id];
+                    if (!state) return;
+                    
+                    if (type === 'lamp') {
+                        if (state.powered) {
+                            const color = el.dataset.lampColor || '#ffffff';
+                            el.style.background = color;
+                            el.style.borderColor = color;
+                            el.style.setProperty('--lamp-color', color);
+                            el.style.setProperty('--lamp-glow', color + '88');
+                            el.classList.add('on');
+                        } else {
+                            el.style.background = '#2a2a2a';
+                            el.style.borderColor = '#444';
+                            el.classList.remove('on');
+                        }
+                    } else if (type === 'display') {
+                        if (state.powered) {
+                            let color = el.dataset.displayColor || '#000000';
+                            let sourceColor = null;
+                            wires.forEach(wire => {
+                                if (wire.to === el.id) {
+                                    const fromEl = document.getElementById(wire.from);
+                                    if (fromEl) {
+                                        if (fromEl.dataset.lampColor) sourceColor = fromEl.dataset.lampColor;
+                                        if (fromEl.dataset.color) sourceColor = fromEl.dataset.color;
+                                    }
+                                }
+                            });
+                            if (sourceColor) color = sourceColor;
+                            el.style.background = color;
+                            el.style.borderColor = color;
+                            el.style.setProperty('--display-color', color);
+                            el.style.setProperty('--display-glow', color + '44');
+                            el.classList.add('on');
+                        } else {
+                            el.style.background = '#ffffff';
+                            el.style.borderColor = '#888';
+                            el.classList.remove('on');
+                        }
+                    } else if (type === 'chip') {
+                        const indicator = el.querySelector('.output-indicator');
+                        if (indicator) {
+                            if (state.powered) {
+                                indicator.classList.add('on');
+                                el.classList.add('powered');
+                            } else {
+                                indicator.classList.remove('on');
+                                el.classList.remove('powered');
+                            }
+                        }
+                    } else if (type === 'timer') {
+                        const indicator = el.querySelector('.indicator');
+                        if (indicator) {
+                            if (state.powered) {
+                                indicator.classList.add('on');
+                                el.classList.add('powered');
+                            } else {
+                                indicator.classList.remove('on');
+                                el.classList.remove('powered');
+                            }
+                        }
+                    } else if (type === 'sensor') {
+                        // уже обрабатывается через класс active
+                    } else if (powerGivers.includes(type) || powerTakers.includes(type)) {
+                        const indicator = el.querySelector('.indicator');
+                        if (indicator) {
+                            if (state.powered) {
+                                indicator.classList.add('on');
+                                el.classList.add('powered');
+                            } else {
+                                indicator.classList.remove('on');
+                                el.classList.remove('powered');
+                            }
+                        }
+                    }
+                });
+                updateCollisionVisuals();
+            }
+
+            function updateWireVisual(wire) {
+                const wireEl = document.getElementById(wire.id);
+                if (!wireEl) return;
+                const fromEl = document.getElementById(wire.from);
+                const toEl = document.getElementById(wire.to);
+                if (!fromEl || !toEl) return;
+                
+                const fromState = itemStates[fromEl.id]?.powered || false;
+                const toState = itemStates[toEl.id]?.powered || false;
+                const isPowered = fromState || toState;
+                
+                const line = wireEl.querySelector('.wire-line');
+                if (line) {
+                    if (isPowered) {
+                        line.classList.add('powered');
+                    } else {
+                        line.classList.remove('powered');
+                    }
+                }
+            }
+
+            // ===== ПРОВОДА =====
+            function handleWire(el) {
+                if (!wireStart) {
+                    wireStart = el;
+                    el.style.borderColor = '#8fb0ff';
+                    el.style.boxShadow = '0 0 30px #3f7bff66';
+                    
+                    if (tempWire) { tempWire.remove(); tempWire = null; }
+                    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                    svg.style.position = 'absolute';
+                    svg.style.top = '0';
+                    svg.style.left = '0';
+                    svg.style.width = '100%';
+                    svg.style.height = '100%';
+                    svg.style.pointerEvents = 'none';
+                    svg.style.zIndex = '3';
+                    
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('class', 'temp-wire');
+                    line.setAttribute('x1', '0');
+                    line.setAttribute('y1', '0');
+                    line.setAttribute('x2', '0');
+                    line.setAttribute('y2', '0');
+                    svg.appendChild(line);
+                    field.appendChild(svg);
+                    tempWire = svg;
+                    
+                    document.addEventListener('mousemove', onWireMove);
+                    document.addEventListener('touchmove', onWireMoveTouch, {passive: false});
+                } else if (wireStart !== el) {
+                    const existingWire1 = wires.find(w => w.from === wireStart.id && w.to === el.id);
+                    
+                    if (existingWire1) {
+                        existingWire1.el.remove();
+                        wires = wires.filter(w => w.id !== existingWire1.id);
+                    } else {
+                        createWire(wireStart, el);
+                    }
+                    
+                    wireStart.style.borderColor = '';
+                    wireStart.style.boxShadow = '';
+                    wireStart = null;
+                    if (tempWire) { tempWire.remove(); tempWire = null; }
+                    document.removeEventListener('mousemove', onWireMove);
+                    document.removeEventListener('touchmove', onWireMoveTouch);
+                    updateLogic();
+                } else {
+                    wireStart.style.borderColor = '';
+                    wireStart.style.boxShadow = '';
+                    wireStart = null;
+                    if (tempWire) { tempWire.remove(); tempWire = null; }
+                    document.removeEventListener('mousemove', onWireMove);
+                    document.removeEventListener('touchmove', onWireMoveTouch);
+                }
+            }
+
+            function onWireMove(e) { updateTempWire(e.clientX, e.clientY); }
+            function onWireMoveTouch(e) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                updateTempWire(touch.clientX, touch.clientY);
+            }
+
+            function updateTempWire(cx, cy) {
+                if (!wireStart || !tempWire) return;
+                const rect = field.getBoundingClientRect();
+                const startRect = wireStart.getBoundingClientRect();
+                const x1 = startRect.left + startRect.width/2 - rect.left;
+                const y1 = startRect.top + startRect.height/2 - rect.top;
+                const x2 = cx - rect.left;
+                const y2 = cy - rect.top;
+                
+                const line = tempWire.querySelector('.temp-wire');
+                if (line) {
+                    line.setAttribute('x1', x1);
+                    line.setAttribute('y1', y1);
+                    line.setAttribute('x2', x2);
+                    line.setAttribute('y2', y2);
+                }
+            }
+
+            function createWire(el1, el2) {
+                const rect1 = el1.getBoundingClientRect();
+                const rect2 = el2.getBoundingClientRect();
+                const fieldRect = field.getBoundingClientRect();
+
+                const x1 = rect1.left + rect1.width/2 - fieldRect.left;
+                const y1 = rect1.top + rect1.height/2 - fieldRect.top;
+                const x2 = rect2.left + rect2.width/2 - fieldRect.left;
+                const y2 = rect2.top + rect2.height/2 - fieldRect.top;
+
+                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.style.position = 'absolute';
+                svg.style.top = '0';
+                svg.style.left = '0';
+                svg.style.width = '100%';
+                svg.style.height = '100%';
+                svg.style.pointerEvents = 'none';
+                svg.style.zIndex = '2';
+                
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('class', 'wire-line');
+                line.setAttribute('x1', x1);
+                line.setAttribute('y1', y1);
+                line.setAttribute('x2', x2);
+                line.setAttribute('y2', y2);
+                svg.appendChild(line);
+                field.appendChild(svg);
+                
+                const wireData = {
+                    id: 'wire_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                    from: el1.id,
+                    to: el2.id,
+                    el: svg
+                };
+                wires.push(wireData);
+                svg.id = wireData.id;
+            }
+
+            // ===== ПЕРЕМЕЩЕНИЕ (Перчатка) =====
+            let dragItem = null;
+            let dragOffsetX = 0, dragOffsetY = 0;
+
+            function onItemMouseDown(e) {
+                e.preventDefault();
+                if (selectedTool === 'glove') {
+                    startDragItem(e.clientX, e.clientY, this);
+                } else if (selectedTool === 'wire') {
+                    handleWire(this);
+                } else if (selectedTool === 'settings') {
+                    openSettingsForElement(this);
+                } else if (selectedTool === 'paint') {
+                    applyPaintToElement(this);
+                }
+            }
+
+            function onItemTouchStart(e) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                if (selectedTool === 'glove') {
+                    startDragItem(touch.clientX, touch.clientY, this);
+                } else if (selectedTool === 'wire') {
+                    handleWire(this);
+                } else if (selectedTool === 'settings') {
+                    openSettingsForElement(this);
+                } else if (selectedTool === 'paint') {
+                    applyPaintToElement(this);
+                }
+            }
+
+            function startDragItem(cx, cy, el) {
+                const rect = el.getBoundingClientRect();
+                dragOffsetX = cx - rect.left;
+                dragOffsetY = cy - rect.top;
+                dragItem = el;
+                el.classList.add('draggable');
+                el.style.cursor = 'grabbing';
+                el.style.zIndex = '100';
+                el.style.boxShadow = '0 8px 0 #0a0f1a, 0 8px 24px rgba(0,0,0,0.8)';
+                isDragging = true;
+
+                document.addEventListener('mousemove', onItemDragMove);
+                document.addEventListener('mouseup', onItemDragEnd);
+                document.addEventListener('touchmove', onItemDragTouchMove, {passive: false});
+                document.addEventListener('touchend', onItemDragTouchEnd, {passive: false});
+            }
+
+            function processMoveQueue() {
+                if (moveQueue.length === 0) return;
+                
+                const now = Date.now();
+                if (now - lastMoveTime < 16) {
+                    requestAnimationFrame(processMoveQueue);
+                    return;
+                }
+                
+                const { cx, cy } = moveQueue.pop();
+                moveDragItem(cx, cy);
+                lastMoveTime = now;
+                
+                if (moveQueue.length > 0) {
+                    requestAnimationFrame(processMoveQueue);
+                }
+            }
+
+            function moveDragItem(cx, cy) {
+                if (!dragItem) return;
+                const fieldRect = field.getBoundingClientRect();
+                let x = cx - fieldRect.left - dragOffsetX;
+                let y = cy - fieldRect.top - dragOffsetY;
+                
+                const result = checkCollision(dragItem, x, y);
+                dragItem.style.left = result.x + 'px';
+                dragItem.style.top = result.y + 'px';
+                
+                wires.forEach(w => {
+                    if (w.from === dragItem.id || w.to === dragItem.id) {
+                        updateWirePosition(w);
+                    }
+                });
+            }
+
+            function onItemDragMove(e) {
+                e.preventDefault();
+                moveQueue.push({ cx: e.clientX, cy: e.clientY });
+                if (moveQueue.length === 1) {
+                    requestAnimationFrame(processMoveQueue);
+                }
+            }
+
+            function onItemDragTouchMove(e) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                moveQueue.push({ cx: touch.clientX, cy: touch.clientY });
+                if (moveQueue.length === 1) {
+                    requestAnimationFrame(processMoveQueue);
+                }
+            }
+
+            function updateWirePosition(wire) {
+                const fromEl = document.getElementById(wire.from);
+                const toEl = document.getElementById(wire.to);
+                if (!fromEl || !toEl) return;
+                const rect1 = fromEl.getBoundingClientRect();
+                const rect2 = toEl.getBoundingClientRect();
+                const fieldRect = field.getBoundingClientRect();
+                const x1 = rect1.left + rect1.width/2 - fieldRect.left;
+                const y1 = rect1.top + rect1.height/2 - fieldRect.top;
+                const x2 = rect2.left + rect2.width/2 - fieldRect.left;
+                const y2 = rect2.top + rect2.height/2 - fieldRect.top;
+                
+                const line = wire.el.querySelector('.wire-line');
+                if (line) {
+                    line.setAttribute('x1', x1);
+                    line.setAttribute('y1', y1);
+                    line.setAttribute('x2', x2);
+                    line.setAttribute('y2', y2);
+                }
+            }
+
+            function onItemDragEnd(e) {
+                document.removeEventListener('mousemove', onItemDragMove);
+                document.removeEventListener('mouseup', onItemDragEnd);
+                document.removeEventListener('touchmove', onItemDragTouchMove);
+                document.removeEventListener('touchend', onItemDragTouchEnd);
+                if (dragItem) {
+                    dragItem.style.cursor = '';
+                    dragItem.style.zIndex = '';
+                    dragItem.style.boxShadow = '';
+                    dragItem.classList.remove('draggable');
+                    dragItem = null;
+                    isDragging = false;
+                }
+                moveQueue = [];
+            }
+
+            function onItemDragTouchEnd(e) {
+                document.removeEventListener('mousemove', onItemDragMove);
+                document.removeEventListener('mouseup', onItemDragEnd);
+                document.removeEventListener('touchmove', onItemDragTouchMove);
+                document.removeEventListener('touchend', onItemDragTouchEnd);
+                if (dragItem) {
+                    dragItem.style.cursor = '';
+                    dragItem.style.zIndex = '';
+                    dragItem.style.boxShadow = '';
+                    dragItem.classList.remove('draggable');
+                    dragItem = null;
+                    isDragging = false;
+                }
+                moveQueue = [];
+            }
+
+            // ===== ОТВЕРТКА =====
+            function openSettingsForElement(el) {
+                selectedElement = el;
+                const type = el.dataset.type;
+                settingsLabel.textContent = 'Настройки: ' + getItemLabel(type);
+                settingsContent.innerHTML = '';
+                
+                // === НАСТРОЙКА КОЛЛИЗИИ ===
+                const collisionLabel = document.createElement('label');
+                collisionLabel.textContent = 'Коллизия:';
+                settingsContent.appendChild(collisionLabel);
+                
+                const toggleRow = document.createElement('div');
+                toggleRow.className = 'toggle-row';
+                
+                const toggleSwitch = document.createElement('div');
+                toggleSwitch.className = 'toggle-switch' + (el.dataset.collision === 'true' ? ' active' : '');
+                const toggleKnob = document.createElement('div');
+                toggleKnob.className = 'toggle-knob';
+                toggleSwitch.appendChild(toggleKnob);
+                
+                const toggleLabel = document.createElement('label');
+                toggleLabel.textContent = el.dataset.collision === 'true' ? 'Вкл' : 'Выкл';
+                
+                toggleSwitch.addEventListener('click', function() {
+                    const isOn = el.dataset.collision === 'true';
+                    el.dataset.collision = isOn ? 'false' : 'true';
+                    this.classList.toggle('active');
+                    toggleLabel.textContent = el.dataset.collision === 'true' ? 'Вкл' : 'Выкл';
+                    updateVisuals();
+                    updateCollisionVisuals();
+                });
+                
+                toggleRow.appendChild(toggleSwitch);
+                toggleRow.appendChild(toggleLabel);
+                settingsContent.appendChild(toggleRow);
+                
+                // === ОСТАЛЬНЫЕ НАСТРОЙКИ ===
+                if (type === 'chip') {
+                    const label = document.createElement('label');
+                    label.textContent = 'Тип чипа:';
+                    settingsContent.appendChild(label);
+                    
+                    const select = document.createElement('select');
+                    chipTypes.forEach(ct => {
+                        const opt = document.createElement('option');
+                        opt.value = ct;
+                        opt.textContent = ct;
+                        if (ct === el.dataset.chipType) opt.selected = true;
+                        select.appendChild(opt);
+                    });
+                    select.addEventListener('change', function() {
+                        el.dataset.chipType = this.value;
+                        const labelEl = el.querySelector('.chip-label');
+                        if (labelEl) labelEl.textContent = this.value;
+                        updateLogic();
+                    });
+                    settingsContent.appendChild(select);
+                    
+                } else if (type === 'battery') {
+                    const label = document.createElement('label');
+                    label.textContent = 'Мощность:';
+                    settingsContent.appendChild(label);
+                    
+                    const range = document.createElement('input');
+                    range.type = 'range';
+                    range.min = '0';
+                    range.max = '100';
+                    range.value = el.dataset.batteryPower || '50';
+                    settingsContent.appendChild(range);
+                    
+                    const valDisplay = document.createElement('div');
+                    valDisplay.className = 'value-display';
+                    valDisplay.textContent = range.value + '%';
+                    settingsContent.appendChild(valDisplay);
+                    
+                    range.addEventListener('input', function() {
+                        valDisplay.textContent = this.value + '%';
+                        el.dataset.batteryPower = this.value;
+                    });
+                    
+                } else if (type === 'generator') {
+                    const label = document.createElement('label');
+                    label.textContent = 'Частота:';
+                    settingsContent.appendChild(label);
+                    
+                    const range = document.createElement('input');
+                    range.type = 'range';
+                    range.min = '0';
+                    range.max = '100';
+                    range.value = '50';
+                    settingsContent.appendChild(range);
+                    
+                    const valDisplay = document.createElement('div');
+                    valDisplay.className = 'value-display';
+                    valDisplay.textContent = range.value + '%';
+                    settingsContent.appendChild(valDisplay);
+                    
+                    range.addEventListener('input', function() {
+                        valDisplay.textContent = this.value + '%';
+                    });
+                    
+                } else if (type === 'timer') {
+                    const label = document.createElement('label');
+                    label.textContent = 'Задержка:';
+                    settingsContent.appendChild(label);
+                    
+                    const range = document.createElement('input');
+                    range.type = 'range';
+                    range.min = '1';
+                    range.max = '100';
+                    range.value = parseFloat(el.dataset.timerDelay) * 10 || 10;
+                    settingsContent.appendChild(range);
+                    
+                    const valDisplay = document.createElement('div');
+                    valDisplay.className = 'value-display';
+                    const val = parseFloat(range.value) / 10;
+                    valDisplay.textContent = val.toFixed(1) + 'с';
+                    settingsContent.appendChild(valDisplay);
+                    
+                    range.addEventListener('input', function() {
+                        const v = parseFloat(this.value) / 10;
+                        valDisplay.textContent = v.toFixed(1) + 'с';
+                        el.dataset.timerDelay = v.toFixed(1);
+                        const labelEl = el.querySelector('.timer-label');
+                        if (labelEl) labelEl.textContent = v.toFixed(1) + 'с';
+                    });
+                    
+                } else if (type === 'speaker') {
+                    const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+                    
+                    const modeLabel = document.createElement('label');
+                    modeLabel.textContent = 'Режим:';
+                    settingsContent.appendChild(modeLabel);
+                    
+                    const modeSelect = document.createElement('select');
+                    const optNote = document.createElement('option');
+                    optNote.value = 'note';
+                    optNote.textContent = '🎵 Нота';
+                    if (el.dataset.speakerMode === 'note') optNote.selected = true;
+                    modeSelect.appendChild(optNote);
+                    
+                    const optMusic = document.createElement('option');
+                    optMusic.value = 'music';
+                    optMusic.textContent = '🎵 Моя музыка';
+                    if (el.dataset.speakerMode === 'music') optMusic.selected = true;
+                    modeSelect.appendChild(optMusic);
+                    
+                    modeSelect.addEventListener('change', function() {
+                        el.dataset.speakerMode = this.value;
+                        const noteSection = settingsContent.querySelector('.note-section');
+                        const musicSection = settingsContent.querySelector('.music-section');
+                        if (noteSection) noteSection.style.display = this.value === 'note' ? 'block' : 'none';
+                        if (musicSection) musicSection.style.display = this.value === 'music' ? 'block' : 'none';
+                    });
+                    settingsContent.appendChild(modeSelect);
+                    
+                    const noteSection = document.createElement('div');
+                    noteSection.className = 'note-section';
+                    noteSection.style.display = el.dataset.speakerMode === 'note' ? 'block' : 'none';
+                    
+                    const label1 = document.createElement('label');
+                    label1.textContent = 'Нота:';
+                    noteSection.appendChild(label1);
+                    
+                    const noteGrid = document.createElement('div');
+                    noteGrid.className = 'note-grid';
+                    notes.forEach(n => {
+                        const btn = document.createElement('button');
+                        btn.className = 'note-btn';
+                        if (n === el.dataset.speakerNote) btn.classList.add('active');
+                        btn.textContent = n;
+                        btn.addEventListener('click', function() {
+                            noteGrid.querySelectorAll('.note-btn').forEach(b => b.classList.remove('active'));
+                            this.classList.add('active');
+                            el.dataset.speakerNote = n;
+                            const octave = parseInt(el.dataset.speakerOctave) || 4;
+                            const freq = getFrequency(n, octave);
+                            playNote(freq, 0.3);
+                        });
+                        noteGrid.appendChild(btn);
+                    });
+                    noteSection.appendChild(noteGrid);
+                    
+                    const label2 = document.createElement('label');
+                    label2.textContent = 'Октава:';
+                    noteSection.appendChild(label2);
+                    
+                    const octaveSelect = document.createElement('select');
+                    for (let i = 1; i <= 8; i++) {
+                        const opt = document.createElement('option');
+                        opt.value = i;
+                        opt.textContent = i;
+                        if (i === parseInt(el.dataset.speakerOctave)) opt.selected = true;
+                        octaveSelect.appendChild(opt);
+                    }
+                    octaveSelect.addEventListener('change', function() {
+                        el.dataset.speakerOctave = this.value;
+                        const note = el.dataset.speakerNote || 'A';
+                        const freq = getFrequency(note, parseInt(this.value));
+                        playNote(freq, 0.3);
+                    });
+                    noteSection.appendChild(octaveSelect);
+                    
+                    settingsContent.appendChild(noteSection);
+                    
+                    const musicSection = document.createElement('div');
+                    musicSection.className = 'music-section';
+                    musicSection.style.display = el.dataset.speakerMode === 'music' ? 'block' : 'none';
+                    
+                    const fileLabel = document.createElement('label');
+                    fileLabel.textContent = 'Загрузить музыку:';
+                    musicSection.appendChild(fileLabel);
+                    
+                    const fileWrapper = document.createElement('div');
+                    fileWrapper.className = 'file-input-wrapper';
+                    
+                    const fileInput = document.createElement('input');
+                    fileInput.type = 'file';
+                    fileInput.accept = 'audio/*';
+                    fileInput.id = 'musicFileInput';
+                    
+                    const fileLabelBtn = document.createElement('label');
+                    fileLabelBtn.className = 'file-label';
+                    fileLabelBtn.htmlFor = 'musicFileInput';
+                    fileLabelBtn.textContent = '📁 Выбрать файл';
+                    
+                    const fileStatus = document.createElement('span');
+                    fileStatus.className = 'file-status';
+                    fileStatus.textContent = loadedAudioBuffer ? '✅ Загружено' : '❌ Не загружено';
+                    
+                    fileInput.addEventListener('change', function(e) {
+                        const file = this.files[0];
+                        if (file) {
+                            const reader = new FileReader();
+                            reader.onload = function(ev) {
+                                audioCtx.decodeAudioData(ev.target.result, function(buffer) {
+                                    loadedAudioBuffer = buffer;
+                                    fileStatus.textContent = '✅ Загружено: ' + file.name;
+                                }, function() {
+                                    fileStatus.textContent = '❌ Ошибка загрузки';
+                                });
+                            };
+                            reader.readAsArrayBuffer(file);
+                        }
+                    });
+                    
+                    fileWrapper.appendChild(fileInput);
+                    fileWrapper.appendChild(fileLabelBtn);
+                    fileWrapper.appendChild(fileStatus);
+                    musicSection.appendChild(fileWrapper);
+                    
+                    settingsContent.appendChild(musicSection);
+                    
+                    setTimeout(() => {
+                        const mode = el.dataset.speakerMode || 'note';
+                        const noteSec = settingsContent.querySelector('.note-section');
+                        const musicSec = settingsContent.querySelector('.music-section');
+                        if (noteSec) noteSec.style.display = mode === 'note' ? 'block' : 'none';
+                        if (musicSec) musicSec.style.display = mode === 'music' ? 'block' : 'none';
+                    }, 50);
+                    
+                } else {
+                    const msg = document.createElement('div');
+                    msg.style.color = '#8aacf0';
+                    msg.style.fontSize = '0.7rem';
+                    msg.textContent = 'Нет дополнительных настроек';
+                    settingsContent.appendChild(msg);
+                }
+                
+                settingsPanel.classList.add('open');
+            }
+
+            // ===== КИСТЬ =====
+            function applyPaintToElement(el) {
+                if (el.dataset.type === 'sensor') return;
+                if (el.dataset.type === 'display') {
+                    const color = paintColor.value;
+                    el.dataset.displayColor = color;
+                    if (!itemStates[el.id]?.powered) {
+                        el.style.background = color;
+                        el.style.borderColor = color;
+                        el.style.setProperty('--display-color', color);
+                    }
+                    paintPanel.classList.remove('open');
+                    return;
+                }
+                if (el.dataset.type === 'lamp') {
+                    const color = paintColor.value;
+                    el.dataset.lampColor = color;
+                    el.style.background = color;
+                    el.style.borderColor = color;
+                    el.style.setProperty('--lamp-color', color);
+                    el.style.setProperty('--lamp-glow', color + '88');
+                    paintPanel.classList.remove('open');
+                    return;
+                }
+                
+                const color = paintColor.value;
+                el.dataset.color = color;
+                if (el.classList.contains('type-chip')) {
+                    el.style.background = `linear-gradient(145deg, ${color}cc, ${color}66)`;
+                    el.style.borderColor = color;
+                } else if (el.classList.contains('with-indicator') || el.classList.contains('type-switch')) {
+                    el.style.background = `linear-gradient(145deg, ${color}cc, ${color}66)`;
+                    el.style.borderColor = color;
+                }
+                paintPanel.classList.remove('open');
+                
+                updateDisplaysColor();
+            }
+
+            function updateDisplaysColor() {
+                const displays = fieldItems.filter(el => el.dataset.type === 'display');
+                displays.forEach(display => {
+                    let sourceColor = null;
+                    wires.forEach(wire => {
+                        if (wire.to === display.id) {
+                            const fromEl = document.getElementById(wire.from);
+                            if (fromEl) {
+                                if (fromEl.dataset.lampColor) sourceColor = fromEl.dataset.lampColor;
+                                if (fromEl.dataset.color) sourceColor = fromEl.dataset.color;
+                            }
+                        }
+                    });
+                    if (sourceColor) {
+                        display.dataset.displayColor = sourceColor;
+                        if (itemStates[display.id]?.powered) {
+                            display.style.background = sourceColor;
+                            display.style.borderColor = sourceColor;
+                            display.style.setProperty('--display-color', sourceColor);
+                            display.style.setProperty('--display-glow', sourceColor + '44');
+                        }
+                    }
+                });
+            }
+
+            // ===== ЗАКРЫТИЕ ПАНЕЛЕЙ =====
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.spawn-panel') && !e.target.closest('#toolSpawn')) {
+                    spawnPanel.classList.remove('open');
+                }
+                if (!e.target.closest('.settings-panel') && !e.target.closest('#toolScrewdriver')) {
+                    // Не закрываем если есть выбранный элемент
+                }
+                if (!e.target.closest('.paint-panel') && !e.target.closest('#toolPaint')) {
+                    paintPanel.classList.remove('open');
+                }
+            });
+
+            window.addEventListener('beforeunload', function() {
+                if (ghost && ghost.parentNode) document.body.removeChild(ghost);
+                Object.values(timerTimeouts).forEach(t => clearTimeout(t));
+            });
+
+        })();
+    </script>
 </body>
 </html>
